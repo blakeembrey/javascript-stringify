@@ -1,0 +1,24 @@
+{
+  "name": "javascript-stringify",
+  "version": "0.0.0",
+  "description": "Stringify is to `eval` as `JSON.stringify` is to `JSON.parse`",
+  "main": "javascript-stringify.js",
+  "scripts": {
+    "test": "istanbul cover node_modules/mocha/bin/_mocha -- -R spec"
+  },
+  "repository": "https://github.com/blakeembrey/javascript-stringify.git",
+  "keywords": [
+    "stringify",
+    "javascript",
+    "object",
+    "string"
+  ],
+  "author": "Blake Embrey <hello@blakeembrey.com> (http://blakeembrey.me/)",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "devDependencies": {
+    "chai": "^1.9.1",
+    "istanbul": "^0.3.0",
+    "mocha": "^1.21.3"
+  }
+}
