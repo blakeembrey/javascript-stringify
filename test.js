@@ -52,7 +52,7 @@ describe('javascript-stringify', function () {
       );
     });
 
-    it('number', function () {
+    it('integer', function () {
       var string = stringify({
         test: [1, 2, 3],
         nested: {
@@ -66,6 +66,33 @@ describe('javascript-stringify', function () {
         '  nested: {\n    key: \'value\'\n  }\n' +
         '}'
       );
+    });
+
+    it('float', function () {
+      var string = stringify({
+        test: [1, 2, 3],
+        nested: {
+          key: 'value'
+        }
+      }, null, 2.6);
+
+      expect(string).to.equal(
+        '{\n' +
+        '  test: [\n    1,\n    2,\n    3\n  ],\n' +
+        '  nested: {\n    key: \'value\'\n  }\n' +
+        '}'
+      );
+    });
+
+    it('invalid', function () {
+      var string = stringify({
+        test: [1, 2, 3],
+        nested: {
+          key: 'value'
+        }
+      }, null, -1);
+
+      expect(string).to.equal('{test:[1,2,3],nested:{key:\'value\'}}');
     });
   });
 

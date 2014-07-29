@@ -178,7 +178,7 @@
   return function (value, replacer, space) {
     // Convert the spaces into a string.
     if (typeof space !== 'string') {
-      space = new Array(space === +space ? Math.max(0, ++space) : 0).join(' ');
+      space = new Array(Math.max(0, space|0) + 1).join(' ');
     }
 
     /**
