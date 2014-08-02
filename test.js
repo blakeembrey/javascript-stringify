@@ -14,7 +14,6 @@ describe('javascript-stringify', function () {
     it('number', test(10, '10'));
     it('array', test([1, 2, 3], '[1,2,3]'));
     it('object', test({ key: 'value', '-': 10 }, '{key:\'value\',\'-\':10}'));
-    it('global', test(global, 'global'));
 
     it('NaN', test(NaN, 'NaN'));
     it('Infinity', test(Infinity, 'Infinity'));
@@ -24,6 +23,10 @@ describe('javascript-stringify', function () {
     it('Number', test(new Number(10), 'new Number(10)'));
     it('String', test(new String('abc'), 'new String(\'abc\')'));
     it('Boolean', test(new Boolean(true), 'new Boolean(true)'));
+
+    it('global', function () {
+      expect(eval(stringify(global))).to.equal(global);
+    });
   });
 
   describe('circular references', function () {

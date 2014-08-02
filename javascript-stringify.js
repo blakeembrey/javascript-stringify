@@ -47,25 +47,9 @@
    *
    * @return {String}
    */
-  var getGlobalVariable = function () {
-    return 'global';
+  var getGlobalVariable = function (value, indent, stringify) {
+    return 'Function(' + stringify('return this;') + ')()';
   };
-
-  /* istanbul ignore next */
-  if (typeof window === 'object' && typeof window.document === 'object') {
-    // Support browser environments.
-    getGlobalVariable = function () {
-      return 'window';
-    };
-  }
-
-  /* istanbul ignore next */
-  if (typeof self === 'object' && typeof self.importScripts === 'function') {
-    // Support web worker environments.
-    getGlobalVariable = function () {
-      return 'self';
-    };
-  }
 
   /**
    * Convert JavaScript objects into strings.
