@@ -14,6 +14,44 @@
   }
 })(this, function () {
   /**
+   * Match all characters that need to be escaped in a string. Modified from
+   * source to match single quotes instead of double.
+   *
+   * Source: https://github.com/douglascrockford/JSON-js/blob/master/json2.js
+   *
+   * @type {RegExp}
+   */
+  var ESCAPABLE = /[\\\'\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g;
+
+  /**
+   * Map of characters to escape characters.
+   *
+   * @type {Object}
+   */
+  var META_CHARS = {
+    '\b': '\\b',
+    '\t': '\\t',
+    '\n': '\\n',
+    '\f': '\\f',
+    '\r': '\\r',
+    "'":  "\\'",
+    '"':  '\\"',
+    '\\': '\\\\'
+  };
+
+  /**
+   * Escape any character into its literal JavaScript string.
+   *
+   * @param  {String} char
+   * @return {String}
+   */
+  var escapeChar = function (char) {
+    var meta = META_CHARS[char];
+
+    return meta || '\\u' + ('0000' + char.charCodeAt(0).toString(16)).slice(-4);
+  };
+
+  /**
    * JavaScript reserved word list.
    */
   var RESERVED_WORDS = {};
@@ -122,7 +160,7 @@
    */
   var PRIMITIVE_TYPES = {
     'string': function (string) {
-      return "'" + string.replace(/'/g, "\\'") + "'";
+      return "'" + string.replace(ESCAPABLE, escapeChar) + "'";
     },
     'number': String,
     'object': String,

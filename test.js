@@ -17,6 +17,16 @@ describe('javascript-stringify', function () {
       it('should wrap in single quotes', test('string', "'string'"));
 
       it('should escape quote characters', test("'test'", "'\\'test\\''"));
+
+      it(
+        'should escape control characters',
+        test('multi\nline', "'multi\\nline'")
+      );
+
+      it(
+        'should escape back slashes',
+        test('back\\slash', "'back\\\\slash'")
+      );
     });
 
     describe('numbers', function () {
