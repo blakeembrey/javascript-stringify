@@ -9,23 +9,65 @@ describe('javascript-stringify', function () {
       };
     };
 
-    it('string', test('string', '\'string\''));
-    it('boolean', test(true, 'true'));
-    it('number', test(10, '10'));
-    it('array', test([1, 2, 3], '[1,2,3]'));
-    it('object', test({ key: 'value', '-': 10 }, '{key:\'value\',\'-\':10}'));
+    describe('booleans', function () {
+      it('should be stringified', test(true, 'true'));
+    });
 
-    it('NaN', test(NaN, 'NaN'));
-    it('Infinity', test(Infinity, 'Infinity'));
-    it('-Infinity', test(-Infinity, '-Infinity'));
-    it('Date', test(new Date(), 'new Date(' + Date.now() + ')'));
-    it('RegExp', test(/[abc]/gi, '/[abc]/gi'));
-    it('Number', test(new Number(10), 'new Number(10)'));
-    it('String', test(new String('abc'), 'new String(\'abc\')'));
-    it('Boolean', test(new Boolean(true), 'new Boolean(true)'));
+    describe('strings', function () {
+      it('should wrap in single quotes', test('string', "'string'"));
+    });
 
-    it('global', function () {
-      expect(eval(stringify(global))).to.equal(global);
+    describe('numbers', function () {
+      it('should stringify integers', test(10, '10'));
+
+      it('should stringify floats', test(10.5, '10.5'));
+
+      it('should stringify "NaN"', test(10.5, '10.5'));
+
+      it('should stringify "Infinity"', test(Infinity, 'Infinity'));
+
+      it('should stringify "-Infinity"', test(-Infinity, '-Infinity'));
+    });
+
+    describe('arrays', function () {
+      it('should stringify as array shorthand', test([1, 2, 3], '[1,2,3]'));
+    });
+
+    describe('objects', function () {
+      it(
+        'should stringify as object shorthand',
+        test({ key: 'value', '-': 10 }, '{key:\'value\',\'-\':10}')
+      );
+    });
+
+    describe('native instances', function () {
+      describe('Date', function () {
+        var date = new Date();
+
+        it('should stringify', test(date, 'new Date(' + date.getTime() + ')'));
+      });
+
+      describe('RegExp', function () {
+        it('should stringify as shorthand', test(/[abc]/gi, '/[abc]/gi'));
+      });
+
+      describe('Number', function () {
+        it('should stringify', test(new Number(10), 'new Number(10)'));
+      });
+
+      describe('String', function () {
+        it('should stringify', test(new String('abc'), 'new String(\'abc\')'));
+      });
+
+      describe('Boolean', function () {
+        it('should stringify', test(new Boolean(true), 'new Boolean(true)'));
+      });
+    });
+
+    describe('global', function () {
+      it('should access the global in the current environment', function () {
+        expect(eval(stringify(global))).to.equal(global);
+      });
     });
   });
 
