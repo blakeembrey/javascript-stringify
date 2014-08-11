@@ -1,6 +1,6 @@
 {
   "name": "javascript-stringify",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Stringify is to `eval` as `JSON.stringify` is to `JSON.parse`",
   "main": "javascript-stringify.js",
   "scripts": {
