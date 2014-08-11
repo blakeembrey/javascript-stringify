@@ -38,7 +38,7 @@ describe('javascript-stringify', function () {
     describe('objects', function () {
       it(
         'should stringify as object shorthand',
-        test({ key: 'value', '-': 10 }, '{key:\'value\',\'-\':10}')
+        test({ key: 'value', '-': 10 }, "{key:'value','-':10}")
       );
     });
 
@@ -58,7 +58,7 @@ describe('javascript-stringify', function () {
       });
 
       describe('String', function () {
-        it('should stringify', test(new String('abc'), 'new String(\'abc\')'));
+        it('should stringify', test(new String('abc'), "new String('abc')"));
       });
 
       describe('Boolean', function () {
@@ -78,7 +78,7 @@ describe('javascript-stringify', function () {
       var obj = { key: 'value' };
       obj.obj = obj;
 
-      expect(stringify(obj)).to.equal('{key:\'value\'}');
+      expect(stringify(obj)).to.equal("{key:'value'}");
     });
   });
 
@@ -139,7 +139,7 @@ describe('javascript-stringify', function () {
         }
       }, null, -1);
 
-      expect(string).to.equal('{test:[1,2,3],nested:{key:\'value\'}}');
+      expect(string).to.equal("{test:[1,2,3],nested:{key:'value'}}");
     });
   });
 
@@ -149,13 +149,13 @@ describe('javascript-stringify', function () {
         test: 'value'
       }, function (value, indent, stringify) {
         if (typeof value === 'string') {
-          return '\'hello\'';
+          return '"hello"';
         }
 
         return stringify(value);
       });
 
-      expect(string).to.equal('{test:\'hello\'}');
+      expect(string).to.equal('{test:"hello"}');
     });
 
     it('change primitive to object', function () {
@@ -169,7 +169,7 @@ describe('javascript-stringify', function () {
         return stringify(value);
       });
 
-      expect(string).to.equal('{test:{obj:\'value\'}}');
+      expect(string).to.equal("{test:{obj:'value'}}");
     });
 
     it('change object to primitive', function () {
