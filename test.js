@@ -15,6 +15,8 @@ describe('javascript-stringify', function () {
 
     describe('strings', function () {
       it('should wrap in single quotes', test('string', "'string'"));
+
+      it('should escape quote characters', test("'test'", "'\\'test\\''"));
     });
 
     describe('numbers', function () {

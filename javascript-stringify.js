@@ -122,7 +122,7 @@
    */
   var PRIMITIVE_TYPES = {
     'string': function (string) {
-      return '\'' + string.replace('\'', '\\\'') + '\'';
+      return "'" + string.replace(/'/g, "\\'") + "'";
     },
     'number': String,
     'object': String,
