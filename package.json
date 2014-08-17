@@ -13,7 +13,11 @@
     "object",
     "string"
   ],
-  "author": "Blake Embrey <hello@blakeembrey.com> (http://blakeembrey.me/)",
+  "author": {
+    "name": "Blake Embrey",
+    "email": "hello@blakeembrey.com",
+    "url": "http://blakeembrey.me"
+  },
   "license": "MIT",
   "readmeFilename": "README.md",
   "devDependencies": {
