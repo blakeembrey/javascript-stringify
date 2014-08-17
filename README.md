@@ -1,11 +1,11 @@
 # JavaScript Stringify
 
-Stringify is to `eval` as `JSON.stringify` is to `JSON.parse`.
-
 [![NPM version][npm-image]][npm-url]
 [![build status][travis-image]][travis-url]
 [![Test coverage][coveralls-image]][coveralls-url]
 [![Gittip][gittip-image]][gittip-url]
+
+Stringify is to `eval` as `JSON.stringify` is to `JSON.parse`.
 
 ## Installation
 
