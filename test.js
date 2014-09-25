@@ -27,6 +27,11 @@ describe('javascript-stringify', function () {
         'should escape back slashes',
         test('back\\slash', "'back\\\\slash'")
       );
+
+      it(
+        'should escape certain unicode sequences',
+        test('\u0602', "'\\u0602'")
+      );
     });
 
     describe('numbers', function () {
