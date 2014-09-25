@@ -109,6 +109,10 @@
       return '[' + values + ']';
     },
     '[object Object]': function (object, indent, stringify) {
+      if (typeof Buffer === 'function' && Buffer.isBuffer(object)) {
+        return 'new Buffer(' + stringify(object.toString()) + ')';
+      }
+
       // Iterate over object keys and concat string together.
       var values = Object.keys(object).reduce(function (values, key) {
         var value = stringify(object[key]);

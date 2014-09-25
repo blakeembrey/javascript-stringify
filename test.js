@@ -74,6 +74,10 @@ describe('javascript-stringify', function () {
       describe('Boolean', function () {
         it('should stringify', test(new Boolean(true), 'new Boolean(true)'));
       });
+
+      describe('Buffer', function () {
+        it('should stringify', test(new Buffer('test'), "new Buffer('test')"));
+      });
     });
 
     describe('global', function () {
