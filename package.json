@@ -3,6 +3,7 @@
   "version": "1.0.1",
   "description": "Stringify is to `eval` as `JSON.stringify` is to `JSON.parse`",
   "main": "javascript-stringify.js",
+  "typings": "javascript-stringify.d.ts",
   "scripts": {
     "test": "istanbul cover node_modules/mocha/bin/_mocha -- -R spec"
   },
