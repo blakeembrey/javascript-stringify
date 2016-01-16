@@ -1,9 +1,9 @@
 # JavaScript Stringify
 
 [![NPM version][npm-image]][npm-url]
-[![build status][travis-image]][travis-url]
+[![NPM downloads][downloads-image]][downloads-url]
+[![Build status][travis-image]][travis-url]
 [![Test coverage][coveralls-image]][coveralls-url]
-[![Gittip][gittip-image]][gittip-url]
 
 Stringify is to `eval` as `JSON.stringify` is to `JSON.parse`.
 
@@ -100,9 +100,9 @@ MIT
 
 [npm-image]: https://img.shields.io/npm/v/javascript-stringify.svg?style=flat
 [npm-url]: https://npmjs.org/package/javascript-stringify
+[downloads-image]: https://img.shields.io/npm/dm/javascript-stringify.svg?style=flat
+[downloads-url]: https://npmjs.org/package/javascript-stringify
 [travis-image]: https://img.shields.io/travis/blakeembrey/javascript-stringify.svg?style=flat
 [travis-url]: https://travis-ci.org/blakeembrey/javascript-stringify
 [coveralls-image]: https://img.shields.io/coveralls/blakeembrey/javascript-stringify.svg?style=flat
 [coveralls-url]: https://coveralls.io/r/blakeembrey/javascript-stringify?branch=master
-[gittip-image]: https://img.shields.io/gittip/blakeembrey.svg?style=flat
-[gittip-url]: https://www.gittip.com/blakeembrey
