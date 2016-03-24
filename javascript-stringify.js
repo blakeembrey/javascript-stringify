@@ -169,6 +169,7 @@
     'number': String,
     'object': String,
     'boolean': String,
+    'symbol': String,
     'undefined': String
   };
 
