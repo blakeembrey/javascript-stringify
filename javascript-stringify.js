@@ -98,7 +98,8 @@
     '[object Array]': function (array, indent, stringify) {
       // Map array values to their stringified values with correct indentation.
       var values = array.map(function (value) {
-        return indent + stringify(value).split('\n').join('\n' + indent);
+        var str = stringify(value);
+        return indent + (str && str.split('\n').join('\n' + indent));
       }).join(indent ? ',\n' : ',');
 
       // Wrap the array in newlines if we have indentation set.
