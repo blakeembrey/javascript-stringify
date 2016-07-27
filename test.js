@@ -3,9 +3,9 @@ var stringify = require('./');
 
 describe('javascript-stringify', function () {
   describe('types', function () {
-    var test = function (type, string) {
+    var test = function (input, result, indent) {
       return function () {
-        expect(stringify(type)).to.equal(string);
+        expect(stringify(input, null, indent)).to.equal(result);
       };
     };
 
@@ -48,6 +48,8 @@ describe('javascript-stringify', function () {
 
     describe('arrays', function () {
       it('should stringify as array shorthand', test([1, 2, 3], '[1,2,3]'));
+
+      it('should indent elements', test([{ x: 10 }], '[\n\t{\n\t\tx: 10\n\t}\n]', '\t'))
     });
 
     describe('objects', function () {

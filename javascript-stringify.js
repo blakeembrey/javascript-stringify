@@ -85,7 +85,7 @@
    *
    * @return {String}
    */
-  var getGlobalVariable = function (value, indent, stringify) {
+  var toGlobalVariable = function (value, indent, stringify) {
     return 'Function(' + stringify('return this;') + ')()';
   };
 
@@ -99,7 +99,12 @@
       // Map array values to their stringified values with correct indentation.
       var values = array.map(function (value) {
         var str = stringify(value);
-        return indent + (str && str.split('\n').join('\n' + indent));
+
+        if (value === undefined) {
+          return String(str)
+        }
+
+        return indent + str.split('\n').join('\n' + indent);
       }).join(indent ? ',\n' : ',');
 
       // Wrap the array in newlines if we have indentation set.
@@ -140,22 +145,39 @@
 
       return '{' + values + '}';
     },
-    '[object Date]': function (date, indent, stringify) {
+    '[object Date]': function (date) {
       return 'new Date(' + date.getTime() + ')';
     },
-    '[object String]': function (string, indent, stringify) {
+    '[object String]': function (string) {
       return 'new String(' + stringify(string.toString()) + ')';
     },
-    '[object Number]': function (number, indent, stringify) {
+    '[object Number]': function (number) {
       return 'new Number(' + number + ')';
     },
-    '[object Boolean]': function (boolean, indent, stringify) {
+    '[object Boolean]': function (boolean) {
       return 'new Boolean(' + boolean + ')';
+    },
+    '[object Uint8Array]': function (array, indent) {
+      if (typeof Buffer === 'function' && Buffer.isBuffer(array)) {
+        return 'new Buffer(' + stringify(array.toString()) + ')';
+      }
+
+      if (indent) {
+        var str = '';
+
+        for (var i = 0; i < array.length; i++) {
+          str += indent + array[i] + ',\n'
+        }
+
+        return 'new Uint8Array([\n' + str + '\n])'
+      }
+
+      return 'new Uint8Array([' + array.join(indent ? ',\n' : ',') + '])'
     },
     '[object RegExp]': String,
     '[object Function]': String,
-    '[object global]': getGlobalVariable,
-    '[object Window]': getGlobalVariable
+    '[object global]': toGlobalVariable,
+    '[object Window]': toGlobalVariable
   };
 
   /**
