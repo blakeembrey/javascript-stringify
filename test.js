@@ -101,6 +101,13 @@ describe('javascript-stringify', function () {
 
       expect(stringify(obj)).to.equal("{key:'value'}");
     });
+
+    it('should omit array value', function () {
+      var obj = [1, 2, 3];
+      obj.push(obj);
+
+      expect(stringify(obj)).to.equal("[1,2,3,undefined]");
+    });
   });
 
   describe('custom spaces', function () {

@@ -100,7 +100,7 @@
       var values = array.map(function (value) {
         var str = stringify(value);
 
-        if (value === undefined) {
+        if (str === undefined) {
           return String(str)
         }
 
