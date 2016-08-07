@@ -210,4 +210,17 @@ describe('javascript-stringify', function () {
       expect(string).to.equal('[object Object]');
     });
   });
+
+  describe('maxDepth option', function () {
+    var obj = { a: { b: { c: 1 } } };
+    it('should get all object', function () {
+      var string = stringify(obj);
+      expect(string).to.equal('{a:{b:{c:1}}}');
+    });
+
+    it('should get part of the object', function () {
+      var string = stringify(obj, undefined, undefined, { maxDepth: 2 });
+      expect(string).to.equal('{a:{b:{}}}');
+    });
+  });
 });
