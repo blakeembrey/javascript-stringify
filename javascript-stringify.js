@@ -223,14 +223,20 @@
    * @param  {Object}          value
    * @param  {Function}        [replacer]
    * @param  {(Number|String)} [space]
+   * @param  {Object} [options]
    * @return {String}
    */
-  return function (value, replacer, space) {
+  return function (value, replacer, space, options) {
     // Convert the spaces into a string.
     if (typeof space !== 'string') {
       space = new Array(Math.max(0, space|0) + 1).join(' ');
     }
+    
+    if (typeof options !== 'object') {
+      options = { maxDepth: 100 };
+    }
 
+    var i = 0; // Prevent infinite recursion
     /**
      * Handle recursion by checking if we've visited this node every iteration.
      *
@@ -240,12 +246,13 @@
      */
     var recurse = function (value, cache, next) {
       // If we've already visited this node before, break the recursion.
-      if (cache.indexOf(value) > -1) {
+      if (cache.indexOf(value) > -1 || i > options.maxDepth) {
         return;
       }
 
       // Push the value into the values cache to avoid an infinite loop.
       cache.push(value);
+      i++;
 
       // Stringify the value and fallback to
       return next(value, space, function (value) {
