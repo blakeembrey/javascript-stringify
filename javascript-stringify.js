@@ -223,46 +223,59 @@
    * @param  {Object}          value
    * @param  {Function}        [replacer]
    * @param  {(Number|String)} [space]
+   * @param  {Object} [options]
    * @return {String}
    */
-  return function (value, replacer, space) {
+  return function (value, replacer, space, options) {
+    options = options || {}
+
     // Convert the spaces into a string.
     if (typeof space !== 'string') {
       space = new Array(Math.max(0, space|0) + 1).join(' ');
     }
 
+    var maxDepth = options.maxDepth || 200;
+
+    var depth = 0;
+    var cache = [];
+
     /**
      * Handle recursion by checking if we've visited this node every iteration.
      *
      * @param  {*}      value
-     * @param  {Array}  cache
      * @return {String}
      */
-    var recurse = function (value, cache, next) {
+    var recurse = function (value, next) {
       // If we've already visited this node before, break the recursion.
-      if (cache.indexOf(value) > -1) {
+      if (cache.indexOf(value) > -1 || depth > maxDepth) {
         return;
       }
 
       // Push the value into the values cache to avoid an infinite loop.
+      depth++;
       cache.push(value);
 
       // Stringify the value and fallback to
       return next(value, space, function (value) {
-        return recurse(value, cache.slice(), next);
+        var result = recurse(value, next);
+
+        depth--;
+        cache.pop();
+
+        return result;
       });
     };
 
     // If the user defined a replacer function, make the recursion function
     // a double step process - `replacer -> stringify -> replacer -> etc`.
     if (typeof replacer === 'function') {
-      return recurse(value, [], function (value, space, next) {
+      return recurse(value, function (value, space, next) {
         return replacer(value, space, function (value) {
           return stringify(value, space, next);
         });
       });
     }
 
-    return recurse(value, [], stringify);
+    return recurse(value, stringify);
   };
 });

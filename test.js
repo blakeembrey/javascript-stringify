@@ -2,13 +2,13 @@ var expect    = require('chai').expect;
 var stringify = require('./');
 
 describe('javascript-stringify', function () {
-  describe('types', function () {
-    var test = function (input, result, indent) {
-      return function () {
-        expect(stringify(input, null, indent)).to.equal(result);
-      };
+  var test = function (input, result, indent, options) {
+    return function () {
+      expect(stringify(input, null, indent, options)).to.equal(result);
     };
+  };
 
+  describe('types', function () {
     describe('booleans', function () {
       it('should be stringified', test(true, 'true'));
     });
@@ -106,7 +106,17 @@ describe('javascript-stringify', function () {
       var obj = [1, 2, 3];
       obj.push(obj);
 
-      expect(stringify(obj)).to.equal("[1,2,3,undefined]");
+      expect(stringify(obj)).to.equal('[1,2,3,undefined]');
+    });
+
+    it('should use multiple references', function () {
+      var obj = {}
+      var child = {};
+
+      obj.a = child;
+      obj.b = child;
+
+      expect(stringify(obj)).to.equal('{a:{},b:{}}');
     });
   });
 
@@ -209,5 +219,16 @@ describe('javascript-stringify', function () {
 
       expect(string).to.equal('[object Object]');
     });
+  });
+
+  describe('max depth', function () {
+    var obj = { a: { b: { c: 1 } } };
+
+    it('should get all object', test(obj, '{a:{b:{c:1}}}'));
+
+    it(
+      'should get part of the object',
+      test(obj, '{a:{b:{}}}', null, { maxDepth: 2 })
+    );
   });
 });

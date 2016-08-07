@@ -37,10 +37,14 @@ define(function (require, exports, module) {
 ## Usage
 
 ```javascript
-javascriptStringify(value[, replacer [, space]])
+javascriptStringify(value[, replacer [, space [, options]]])
 ```
 
 The API is similar to `JSON.stringify`. However, any value returned by the replacer will be used literally. For this reason, the replacer is passed three arguments - `value`, `indentation` and `stringify`. If you need to continue the stringification process inside your replacer, you can call `stringify` with the updated value.
+
+The `options` object allows some additional configuration:
+
+* **maxDepth** The maximum depth to stringify to
 
 ### Examples
 
@@ -51,6 +55,8 @@ javascriptStringify('foo'); // "'foo'"
 
 javascriptStringify({ x: 5, y: 6});       // "{x:5,y:6}"
 javascriptStringify([1, 2, 3, 'string']); // "[1,2,3,'string']"
+
+javascriptStringify({ a: { b: { c: 1 } } }, null, null, { maxDepth: 2 }); // "{a:{b:{}}}"
 
 /**
  * Invalid key names are automatically stringified.
