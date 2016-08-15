@@ -283,22 +283,24 @@
      */
     var recurse = references ?
       function (value, stringify) {
-        var exists = encountered.indexOf(value);
+        if (value && (typeof value === 'object' || typeof value === 'function')) {
+          var exists = encountered.indexOf(value);
 
-        // Track nodes to restore later.
-        if (exists > -1) {
-          restore.push(path.slice(), paths[exists]);
-          return;
+          // Track nodes to restore later.
+          if (exists > -1) {
+            restore.push(path.slice(), paths[exists]);
+            return;
+          }
+
+          // Track encountered nodes.
+          encountered.push(value);
+          paths.push(path.slice());
         }
 
         // Stop when we hit the max depth.
         if (path.length > maxDepth) {
           return;
         }
-
-        // Track encountered nodes.
-        encountered.push(value);
-        paths.push(path.slice());
 
         // Stringify the value and fallback to
         return stringify(value, space, next);
