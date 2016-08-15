@@ -18,15 +18,11 @@
    * source to match single quotes instead of double.
    *
    * Source: https://github.com/douglascrockford/JSON-js/blob/master/json2.js
-   *
-   * @type {RegExp}
    */
   var ESCAPABLE = /[\\\'\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g;
 
   /**
    * Map of characters to escape characters.
-   *
-   * @type {Object}
    */
   var META_CHARS = {
     '\b': '\\b',
@@ -42,10 +38,10 @@
   /**
    * Escape any character into its literal JavaScript string.
    *
-   * @param  {String} char
-   * @return {String}
+   * @param  {string} char
+   * @return {string}
    */
-  var escapeChar = function (char) {
+  function escapeChar (char) {
     var meta = META_CHARS[char];
 
     return meta || '\\u' + ('0000' + char.charCodeAt(0).toString(16)).slice(-4);
@@ -71,34 +67,57 @@
   });
 
   /**
+   * Test for valid JavaScript identifier.
+   */
+  var IS_VALID_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+
+  /**
    * Check if a variable name is valid.
    *
-   * @param  {String}  name
-   * @return {Boolean}
+   * @param  {string}  name
+   * @return {boolean}
    */
-  var isValidVariableName = function (name) {
-    return !RESERVED_WORDS[name] && /^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(name);
-  };
+  function isValidVariableName (name) {
+    return !RESERVED_WORDS[name] && IS_VALID_IDENTIFIER.test(name);
+  }
 
   /**
    * Return the global variable name.
    *
-   * @return {String}
+   * @return {string}
    */
-  var toGlobalVariable = function (value, indent, stringify) {
+  function toGlobalVariable (value) {
     return 'Function(' + stringify('return this;') + ')()';
-  };
+  }
+
+  /**
+   * Serialize the path to a string.
+   *
+   * @param  {Array} path
+   * @return {string}
+   */
+  function toPath (path) {
+    var result = '';
+
+    for (var i = 0; i < path.length; i++) {
+      if (isValidVariableName(path[i])) {
+        result += '.' + path[i];
+      } else {
+        result += '[' + stringify(path[i]) + ']';
+      }
+    }
+
+    return result;
+  }
 
   /**
    * Convert JavaScript objects into strings.
-   *
-   * @type {Object}
    */
   var OBJECT_TYPES = {
-    '[object Array]': function (array, indent, stringify) {
+    '[object Array]': function (array, indent, next) {
       // Map array values to their stringified values with correct indentation.
-      var values = array.map(function (value) {
-        var str = stringify(value);
+      var values = array.map(function (value, index) {
+        var str = next(value, index);
 
         if (str === undefined) {
           return String(str)
@@ -114,14 +133,14 @@
 
       return '[' + values + ']';
     },
-    '[object Object]': function (object, indent, stringify) {
+    '[object Object]': function (object, indent, next) {
       if (typeof Buffer === 'function' && Buffer.isBuffer(object)) {
         return 'new Buffer(' + stringify(object.toString()) + ')';
       }
 
       // Iterate over object keys and concat string together.
       var values = Object.keys(object).reduce(function (values, key) {
-        var value = stringify(object[key]);
+        var value = next(object[key], key);
 
         // Omit `undefined` object values.
         if (value === undefined) {
@@ -182,8 +201,6 @@
 
   /**
    * Convert JavaScript primitives into strings.
-   *
-   * @type {Object}
    */
   var PRIMITIVE_TYPES = {
     'string': function (string) {
@@ -200,31 +217,31 @@
    * Convert any value to a string.
    *
    * @param  {*}        value
-   * @param  {String}   indent
-   * @param  {Function} stringify
-   * @return {String}
+   * @param  {string}   indent
+   * @param  {Function} next
+   * @return {string}
    */
-  var stringify = function (value, indent, stringify) {
+  function stringify (value, indent, next) {
     // Convert primitives into strings.
     if (Object(value) !== value) {
-      return PRIMITIVE_TYPES[typeof value](value, indent, stringify);
+      return PRIMITIVE_TYPES[typeof value](value, indent, next);
     }
 
     // Use the internal object string to select stringification method.
     var toString = OBJECT_TYPES[Object.prototype.toString.call(value)];
 
     // Convert objects into strings.
-    return toString && toString(value, indent, stringify);
-  };
+    return toString ? toString(value, indent, next) : undefined;
+  }
 
   /**
    * Stringify an object into the literal string.
    *
-   * @param  {Object}          value
+   * @param  {*}               value
    * @param  {Function}        [replacer]
-   * @param  {(Number|String)} [space]
-   * @param  {Object} [options]
-   * @return {String}
+   * @param  {(number|string)} [space]
+   * @param  {Object}          [options]
+   * @return {string}
    */
   return function (value, replacer, space, options) {
     options = options || {}
@@ -234,48 +251,106 @@
       space = new Array(Math.max(0, space|0) + 1).join(' ');
     }
 
-    var maxDepth = options.maxDepth || 200;
+    var maxDepth = Number(options.maxDepth) || 100;
+    var references = !!options.references;
 
-    var depth = 0;
-    var cache = [];
+    var path = [];
+    var stack = [];
+    var encountered = [];
+    var paths = [];
+    var restore = [];
+
+    /**
+     * Stringify the next value in the stack.
+     *
+     * @param  {*}      value
+     * @param  {string} key
+     * @return {string}
+     */
+    function next (value, key) {
+      path.push(key);
+      var result = recurse(value, stringify);
+      path.pop();
+      return result;
+    }
 
     /**
      * Handle recursion by checking if we've visited this node every iteration.
      *
-     * @param  {*}      value
-     * @return {String}
+     * @param  {*}        value
+     * @param  {Function} stringify
+     * @return {string}
      */
-    var recurse = function (value, next) {
-      // If we've already visited this node before, break the recursion.
-      if (cache.indexOf(value) > -1 || depth > maxDepth) {
-        return;
-      }
+    var recurse = references ?
+      function (value, stringify) {
+        var exists = encountered.indexOf(value);
 
-      // Push the value into the values cache to avoid an infinite loop.
-      depth++;
-      cache.push(value);
+        // Track nodes to restore later.
+        if (exists > -1) {
+          restore.push(path.slice(), paths[exists]);
+          return;
+        }
 
-      // Stringify the value and fallback to
-      return next(value, space, function (value) {
-        var result = recurse(value, next);
+        // Stop when we hit the max depth.
+        if (path.length > maxDepth) {
+          return;
+        }
 
-        depth--;
-        cache.pop();
+        // Track encountered nodes.
+        encountered.push(value);
+        paths.push(path.slice());
 
-        return result;
-      });
-    };
+        // Stringify the value and fallback to
+        return stringify(value, space, next);
+      } :
+      function (value, stringify) {
+        var seen = stack.indexOf(value);
+
+        if (seen > -1 || path.length > maxDepth) {
+          return;
+        }
+
+        stack.push(value);
+        var value = stringify(value, space, next);
+        stack.pop();
+        return value;
+      };
 
     // If the user defined a replacer function, make the recursion function
-    // a double step process - `replacer -> stringify -> replacer -> etc`.
+    // a double step process - `recurse -> replacer -> stringify`.
     if (typeof replacer === 'function') {
-      return recurse(value, function (value, space, next) {
-        return replacer(value, space, function (value) {
-          return stringify(value, space, next);
+      var before = recurse
+
+      // Intertwine the replacer function with the regular recursion.
+      recurse = function (value, stringify) {
+        return before(value, function (value, space, next) {
+          return replacer(value, space, function (value) {
+            return stringify(value, space, next);
+          });
         });
-      });
+      };
     }
 
-    return recurse(value, stringify);
+    var result = recurse(value, stringify);
+
+    // Attempt to restore circular references.
+    if (restore.length) {
+      var sep = space ? '\n' : '';
+      var assignment = space ? ' = ' : '=';
+      var eol = ';' + sep;
+      var before = space ? '(function () {' : '(function(){'
+      var after = '}())'
+      var results = ['var x' + assignment + result];
+
+      for (var i = 0; i < restore.length; i += 2) {
+        results.push('x' + toPath(restore[i]) + assignment + 'x' + toPath(restore[i + 1]));
+      }
+
+      results.push('return x');
+
+      return before + sep + results.join(eol) + eol + after
+    }
+
+    return result;
   };
 });

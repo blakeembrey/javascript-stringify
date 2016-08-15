@@ -5,7 +5,7 @@
 [![Build status][travis-image]][travis-url]
 [![Test coverage][coveralls-image]][coveralls-url]
 
-Stringify is to `eval` as `JSON.stringify` is to `JSON.parse`.
+> Stringify is to `eval` as `JSON.stringify` is to `JSON.parse`.
 
 ## Installation
 
@@ -40,11 +40,12 @@ define(function (require, exports, module) {
 javascriptStringify(value[, replacer [, space [, options]]])
 ```
 
-The API is similar to `JSON.stringify`. However, any value returned by the replacer will be used literally. For this reason, the replacer is passed three arguments - `value`, `indentation` and `stringify`. If you need to continue the stringification process inside your replacer, you can call `stringify` with the updated value.
+The API is similar to `JSON.stringify`. However, any value returned by the replacer will be used literally. For this reason, the replacer is passed three arguments - `value`, `indentation` and `stringify`. If you need to continue the stringification process inside your replacer, you can call `stringify(value)` with the new value.
 
 The `options` object allows some additional configuration:
 
-* **maxDepth** The maximum depth to stringify to
+* **maxDepth** _(number)_ The maximum depth of values to stringify
+* **references** _(boolean)_ Restore circular/repeated references in the object (uses IIFE)
 
 ### Examples
 

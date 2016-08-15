@@ -95,28 +95,64 @@ describe('javascript-stringify', function () {
   });
 
   describe('circular references', function () {
-    it('should omit value', function () {
+    it('should omit circular references', function () {
       var obj = { key: 'value' };
       obj.obj = obj;
 
-      expect(stringify(obj)).to.equal("{key:'value'}");
+      var result = stringify(obj)
+
+      expect(result).to.equal("{key:'value'}");
+    });
+
+    it('should restore value', function () {
+      var obj = { key: 'value' };
+      obj.obj = obj;
+
+      var result = stringify(obj, null, null, { references: true })
+
+      expect(result).to.equal("(function(){var x={key:'value'};x.obj=x;return x;}())");
     });
 
     it('should omit array value', function () {
       var obj = [1, 2, 3];
       obj.push(obj);
 
-      expect(stringify(obj)).to.equal('[1,2,3,undefined]');
+      var result = stringify(obj)
+
+      expect(result).to.equal('[1,2,3,undefined]');
     });
 
-    it('should use multiple references', function () {
+    it('should restore array value', function () {
+      var obj = [1, 2, 3];
+      obj.push(obj);
+
+      var result = stringify(obj, null, null, { references: true })
+
+      expect(result).to.equal('(function(){var x=[1,2,3,undefined];x[3]=x;return x;}())');
+    });
+
+    it('should print repeated values when no references enabled', function () {
       var obj = {}
       var child = {};
 
       obj.a = child;
       obj.b = child;
 
-      expect(stringify(obj)).to.equal('{a:{},b:{}}');
+      var result = stringify(obj)
+
+      expect(result).to.equal('{a:{},b:{}}');
+    });
+
+    it('should restore repeated values', function () {
+      var obj = {}
+      var child = {};
+
+      obj.a = child;
+      obj.b = child;
+
+      var result = stringify(obj, null, null, { references: true })
+
+      expect(result).to.equal('(function(){var x={a:{}};x.b=x.a;return x;}())');
     });
   });
 
@@ -183,9 +219,12 @@ describe('javascript-stringify', function () {
 
   describe('replacer function', function () {
     it('should allow custom replacements', function () {
+      var called = 0;
       var string = stringify({
         test: 'value'
       }, function (value, indent, stringify) {
+        called++;
+
         if (typeof value === 'string') {
           return '"hello"';
         }
@@ -193,6 +232,7 @@ describe('javascript-stringify', function () {
         return stringify(value);
       });
 
+      expect(called).to.equal(2);
       expect(string).to.equal('{test:"hello"}');
     });
 
