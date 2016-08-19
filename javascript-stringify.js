@@ -253,6 +253,7 @@
 
     var maxDepth = Number(options.maxDepth) || 100;
     var references = !!options.references;
+    var valueCount = Number(options.maxValues) || 100000;
 
     var path = [];
     var stack = [];
@@ -284,11 +285,11 @@
     var recurse = references ?
       function (value, stringify) {
         if (value && (typeof value === 'object' || typeof value === 'function')) {
-          var exists = encountered.indexOf(value);
+          var seen = encountered.indexOf(value);
 
           // Track nodes to restore later.
-          if (exists > -1) {
-            restore.push(path.slice(), paths[exists]);
+          if (seen > -1) {
+            restore.push(path.slice(), paths[seen]);
             return;
           }
 
@@ -298,7 +299,7 @@
         }
 
         // Stop when we hit the max depth.
-        if (path.length > maxDepth) {
+        if (path.length > maxDepth || valueCount-- <= 0) {
           return;
         }
 
@@ -308,7 +309,7 @@
       function (value, stringify) {
         var seen = stack.indexOf(value);
 
-        if (seen > -1 || path.length > maxDepth) {
+        if (seen > -1 || path.length > maxDepth || valueCount-- <= 0) {
           return;
         }
 

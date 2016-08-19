@@ -44,8 +44,9 @@ The API is similar to `JSON.stringify`. However, any value returned by the repla
 
 The `options` object allows some additional configuration:
 
-* **maxDepth** _(number)_ The maximum depth of values to stringify
-* **references** _(boolean)_ Restore circular/repeated references in the object (uses IIFE)
+* **maxDepth** _(number, default: 100)_ The maximum depth of values to stringify
+* **maxValues** _(number, default: 100000)_ The maximum number of values to stringify
+* **references** _(boolean, default: false)_ Restore circular/repeated references in the object (uses IIFE)
 
 ### Examples
 
@@ -79,6 +80,7 @@ var obj = { x: 10 };
 obj.circular = obj;
 
 javascriptStringify(obj); // "{x:10}"
+javascriptStringify(obj, null, null, { references: true }); // "(function(){var x={x:10};x.circular=x;return x;}())"
 
 /**
  * Specify indentation - just like `JSON.stringify`.
