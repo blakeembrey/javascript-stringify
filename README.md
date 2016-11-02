@@ -47,6 +47,7 @@ The `options` object allows some additional configuration:
 * **maxDepth** _(number, default: 100)_ The maximum depth of values to stringify
 * **maxValues** _(number, default: 100000)_ The maximum number of values to stringify
 * **references** _(boolean, default: false)_ Restore circular/repeated references in the object (uses IIFE)
+* **skipUndefinedProperties** _(boolean, default: false)_ Omits `undefined` properties instead of restoring as `undefined`
 
 ### Examples
 

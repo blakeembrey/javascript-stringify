@@ -93,7 +93,7 @@
   /**
    * Serialize the path to a string.
    *
-   * @param  {Array} path
+   * @param  {Array}  path
    * @return {string}
    */
   function toPath (path) {
@@ -111,59 +111,75 @@
   }
 
   /**
+   * Stringify an array of values.
+   *
+   * @param  {Array}    array
+   * @param  {string}   indent
+   * @param  {Function} next
+   * @return {string}
+   */
+  function stringifyArray (array, indent, next) {
+    // Map array values to their stringified values with correct indentation.
+    var values = array.map(function (value, index) {
+      var str = next(value, index);
+
+      if (str === undefined) {
+        return String(str);
+      }
+
+      return indent + str.split('\n').join('\n' + indent);
+    }).join(indent ? ',\n' : ',');
+
+    // Wrap the array in newlines if we have indentation set.
+    if (indent && values) {
+      return '[\n' + values + '\n]';
+    }
+
+    return '[' + values + ']';
+  }
+
+  /**
+   * Stringify a map of values.
+   *
+   * @param  {Object}   object
+   * @param  {string}   indent
+   * @param  {Function} next
+   * @return {string}
+   */
+  function stringifyObject (object, indent, next) {
+    // Iterate over object keys and concat string together.
+    var values = Object.keys(object).reduce(function (values, key) {
+      var value = next(object[key], key);
+
+      // Omit `undefined` object values.
+      if (value === undefined) {
+        return values;
+      }
+
+      // String format the key and value data.
+      key   = isValidVariableName(key) ? key : stringify(key);
+      value = String(value).split('\n').join('\n' + indent);
+
+      // Push the current object key and value into the values array.
+      values.push(indent + key + ':' + (indent ? ' ' : '') + value);
+
+      return values;
+    }, []).join(indent ? ',\n' : ',');
+
+    // Wrap the object in newlines if we have indentation set.
+    if (indent && values) {
+      return '{\n' + values + '\n}';
+    }
+
+    return '{' + values + '}';
+  }
+
+  /**
    * Convert JavaScript objects into strings.
    */
   var OBJECT_TYPES = {
-    '[object Array]': function (array, indent, next) {
-      // Map array values to their stringified values with correct indentation.
-      var values = array.map(function (value, index) {
-        var str = next(value, index);
-
-        if (str === undefined) {
-          return String(str)
-        }
-
-        return indent + str.split('\n').join('\n' + indent);
-      }).join(indent ? ',\n' : ',');
-
-      // Wrap the array in newlines if we have indentation set.
-      if (indent && values) {
-        return '[\n' + values + '\n]';
-      }
-
-      return '[' + values + ']';
-    },
-    '[object Object]': function (object, indent, next) {
-      if (typeof Buffer === 'function' && Buffer.isBuffer(object)) {
-        return 'new Buffer(' + stringify(object.toString()) + ')';
-      }
-
-      // Iterate over object keys and concat string together.
-      var values = Object.keys(object).reduce(function (values, key) {
-        var value = next(object[key], key);
-
-        // Omit `undefined` object values.
-        if (value === undefined) {
-          return values;
-        }
-
-        // String format the key and value data.
-        key   = isValidVariableName(key) ? key : stringify(key);
-        value = String(value).split('\n').join('\n' + indent);
-
-        // Push the current object key and value into the values array.
-        values.push(indent + key + ':' + (indent ? ' ' : '') + value);
-
-        return values;
-      }, []).join(indent ? ',\n' : ',');
-
-      // Wrap the object in newlines if we have indentation set.
-      if (indent && values) {
-        return '{\n' + values + '\n}';
-      }
-
-      return '{' + values + '}';
-    },
+    '[object Array]': stringifyArray,
+    '[object Object]': stringifyObject,
     '[object Date]': function (date) {
       return 'new Date(' + date.getTime() + ')';
     },
@@ -177,21 +193,7 @@
       return 'new Boolean(' + boolean + ')';
     },
     '[object Uint8Array]': function (array, indent) {
-      if (typeof Buffer === 'function' && Buffer.isBuffer(array)) {
-        return 'new Buffer(' + stringify(array.toString()) + ')';
-      }
-
-      if (indent) {
-        var str = '';
-
-        for (var i = 0; i < array.length; i++) {
-          str += indent + array[i] + ',\n'
-        }
-
-        return 'new Uint8Array([\n' + str + '\n])'
-      }
-
-      return 'new Uint8Array([' + array.join(indent ? ',\n' : ',') + '])'
+      return 'new Uint8Array(' + stringifyArray(array) + ')';
     },
     '[object RegExp]': String,
     '[object Function]': String,
@@ -227,6 +229,11 @@
       return PRIMITIVE_TYPES[typeof value](value, indent, next);
     }
 
+    // Handle buffer objects before recursing (node < 6 was an object, node >= 6 is a `Uint8Array`).
+    if (typeof Buffer === 'function' && Buffer.isBuffer(value)) {
+      return 'new Buffer(' + next(value.toString()) + ')';
+    }
+
     // Use the internal object string to select stringification method.
     var toString = OBJECT_TYPES[Object.prototype.toString.call(value)];
 
@@ -253,6 +260,7 @@
 
     var maxDepth = Number(options.maxDepth) || 100;
     var references = !!options.references;
+    var skipUndefinedProperties = !!options.skipUndefinedProperties;
     var valueCount = Number(options.maxValues) || 100000;
 
     var path = [];
@@ -269,6 +277,10 @@
      * @return {string}
      */
     function next (value, key) {
+      if (skipUndefinedProperties && value === undefined) {
+        return undefined;
+      }
+
       path.push(key);
       var result = recurse(value, stringify);
       path.pop();

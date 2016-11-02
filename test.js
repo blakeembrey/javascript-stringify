@@ -57,6 +57,16 @@ describe('javascript-stringify', function () {
         'should stringify as object shorthand',
         test({ key: 'value', '-': 10 }, "{key:'value','-':10}")
       );
+
+      it(
+        'should stringify undefined keys',
+        test({ a: true, b: undefined }, "{a:true,b:undefined}")
+      );
+
+      it(
+        'should stringify omit undefined keys',
+        test({ a: true, b: undefined }, "{a:true}", null, { skipUndefinedProperties: true })
+      );
     });
 
     describe('native instances', function () {
