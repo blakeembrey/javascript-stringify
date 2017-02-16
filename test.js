@@ -95,6 +95,10 @@ describe('javascript-stringify', function () {
       describe('Buffer', function () {
         it('should stringify', test(new Buffer('test'), "new Buffer('test')"));
       });
+
+      describe('Error', function () {
+        it('should stringify', test(Error('test'), "Error('test')"));
+      });
     });
 
     describe('global', function () {

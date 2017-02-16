@@ -229,6 +229,11 @@
       return PRIMITIVE_TYPES[typeof value](value, indent, next);
     }
 
+    // Handle Error objects.
+    if (value instanceof Error) {
+      return 'Error(' + next(value.message) + ')';
+    }
+
     // Handle buffer objects before recursing (node < 6 was an object, node >= 6 is a `Uint8Array`).
     if (typeof Buffer === 'function' && Buffer.isBuffer(value)) {
       return 'new Buffer(' + next(value.toString()) + ')';
