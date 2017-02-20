@@ -180,6 +180,9 @@
   var OBJECT_TYPES = {
     '[object Array]': stringifyArray,
     '[object Object]': stringifyObject,
+    '[object Error]': function (error) {
+      return 'new Error(' + stringify(error.message) + ')';
+    },
     '[object Date]': function (date) {
       return 'new Date(' + date.getTime() + ')';
     },
