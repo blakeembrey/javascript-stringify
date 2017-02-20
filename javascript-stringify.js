@@ -180,6 +180,9 @@
   var OBJECT_TYPES = {
     '[object Array]': stringifyArray,
     '[object Object]': stringifyObject,
+    '[object Error]': function (error) {
+      return 'new Error(' + error.message + ')';
+    },
     '[object Date]': function (date) {
       return 'new Date(' + date.getTime() + ')';
     },
@@ -227,11 +230,6 @@
     // Convert primitives into strings.
     if (Object(value) !== value) {
       return PRIMITIVE_TYPES[typeof value](value, indent, next);
-    }
-
-    // Handle Error objects.
-    if (value instanceof Error) {
-      return 'Error(' + next(value.message) + ')';
     }
 
     // Handle buffer objects before recursing (node < 6 was an object, node >= 6 is a `Uint8Array`).
