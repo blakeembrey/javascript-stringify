@@ -97,7 +97,7 @@ describe('javascript-stringify', function () {
       });
 
       describe('Error', function () {
-        it('should stringify', test(Error('test'), "Error('test')"));
+        it('should stringify', test(new Error('test'), "new Error('test')"));
       });
     });
 
