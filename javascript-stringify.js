@@ -198,6 +198,16 @@
     '[object Uint8Array]': function (array, indent) {
       return 'new Uint8Array(' + stringifyArray(array) + ')';
     },
+    '[object Set]': function (array, indent, next) {
+      if (typeof Array.from === 'function') {
+        return 'new Set(' + stringify(Array.from(array), indent, next) + ')';
+      } else return undefined;
+    },
+    '[object Map]': function (array, indent, next) {
+      if (typeof Array.from === 'function') {
+        return 'new Map(' + stringify(Array.from(array), indent, next) + ')';
+      } else return undefined;
+    },
     '[object RegExp]': String,
     '[object Function]': String,
     '[object global]': toGlobalVariable,
