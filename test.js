@@ -97,6 +97,21 @@ describe('javascript-stringify', function () {
       });
     });
 
+    describe('ES6', function () {
+      if (typeof Array.from === 'function') {
+        if (typeof Map !== 'undefined') {
+          describe('Map', function () {
+            it('should stringify', test(new Map([['key', 'value']]), "new Map([['key','value']])"));
+          });
+        }
+        if (typeof Set !== 'undefined') {
+          describe('Set', function () {
+            it('should stringify', test(new Set(['key', 'value']), "new Set(['key','value'])"));
+          });
+        }
+      }
+    });
+
     describe('global', function () {
       it('should access the global in the current environment', function () {
         expect(eval(stringify(global))).to.equal(global);
