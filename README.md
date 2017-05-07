@@ -4,6 +4,7 @@
 [![NPM downloads][downloads-image]][downloads-url]
 [![Build status][travis-image]][travis-url]
 [![Test coverage][coveralls-image]][coveralls-url]
+[![Greenkeeper badge](https://badges.greenkeeper.io/blakeembrey/javascript-stringify.svg)](https://greenkeeper.io/)
 
 > Stringify is to `eval` as `JSON.stringify` is to `JSON.parse`.
 
