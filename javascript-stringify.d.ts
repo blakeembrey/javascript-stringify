@@ -3,7 +3,9 @@ declare function stringify (value: any, replacer?: Function, space?: string | nu
 declare namespace javascriptStringify {
   export interface Options {
     maxDepth?: number;
+    maxValues?: number;
     references?: boolean;
+    skipUndefinedProperties?: boolean;
   }
 }
 
