@@ -67,6 +67,16 @@ describe('javascript-stringify', function () {
         'should stringify omit undefined keys',
         test({ a: true, b: undefined }, "{a:true}", null, { skipUndefinedProperties: true })
       );
+
+      it(
+        'should quote reserved word keys',
+        test({ "if": true, "else": false }, "{'if':true,'else':false}")
+      );
+
+      it(
+        'should not quote Object.prototype keys',
+        test({ "constructor": 1, "toString": 2 }, "{constructor:1,toString:2}")
+      );
     });
 
     describe('native instances', function () {
