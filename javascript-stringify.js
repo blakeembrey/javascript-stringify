@@ -196,14 +196,10 @@
       return 'new Boolean(' + boolean + ')';
     },
     '[object Set]': function (array, indent, next) {
-      if (typeof Array.from === 'function') {
-        return 'new Set(' + stringify(Array.from(array), indent, next) + ')';
-      } else return undefined;
+      return 'new Set(' + stringify(Array.from(array), indent, next) + ')';
     },
     '[object Map]': function (array, indent, next) {
-      if (typeof Array.from === 'function') {
-        return 'new Map(' + stringify(Array.from(array), indent, next) + ')';
-      } else return undefined;
+      return 'new Map(' + stringify(Array.from(array), indent, next) + ')';
     },
     '[object RegExp]': String,
     '[object Function]': String,
