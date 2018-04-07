@@ -78,7 +78,7 @@
    * @return {boolean}
    */
   function isValidVariableName (name) {
-    return !RESERVED_WORDS[name] && IS_VALID_IDENTIFIER.test(name);
+    return !RESERVED_WORDS.hasOwnProperty(name) && IS_VALID_IDENTIFIER.test(name);
   }
 
   /**
