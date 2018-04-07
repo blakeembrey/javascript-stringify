@@ -83,6 +83,56 @@ describe('javascript-stringify', function () {
       );
     });
 
+    describe('functions', function () {
+      it(
+        'should reindent function bodies',
+        test(
+          function () {
+            if (true) {
+              return "hello";
+            }
+          },
+          'function () {\n  if (true) {\n    return "hello";\n  }\n}',
+          2
+        )
+      );
+
+      it(
+        'should reindent function bodies in objects',
+        test(
+          {
+            fn: function () {
+              if (true) {
+                return "hello";
+              }
+            }
+          },
+          '{\n  fn: function () {\n    if (true) {\n      return "hello";\n    }\n  }\n}',
+          2
+        )
+      );
+
+      it(
+        'should reindent function bodies in arrays',
+        test(
+          [
+            function () {
+              if (true) {
+                return "hello";
+              }
+            }
+          ],
+          '[\n  function () {\n    if (true) {\n      return "hello";\n    }\n  }\n]',
+          2
+        )
+      );
+
+      it(
+        'should not need to reindent one-liners',
+        testRoundTrip('{\n  fn: function () { return; }\n}', 2)
+      );
+    });
+
     describe('native instances', function () {
       describe('Date', function () {
         var date = new Date();
@@ -134,6 +184,20 @@ describe('javascript-stringify', function () {
 
         describe('arrow functions', function () {
           it('should stringify', testRoundTrip('(a, b) => a + b'));
+
+          it(
+            'should reindent function bodies',
+            test(
+              eval(
+'               (() => {\n' +
+'                 if (true) {\n' +
+'                   return "hello";\n' +
+'                 }\n' +
+'               })'),
+              '() => {\n  if (true) {\n    return "hello";\n  }\n}',
+              2
+            )
+          );
         });
 
         describe('generators', function () {
@@ -197,6 +261,22 @@ describe('javascript-stringify', function () {
             var fn = eval('({ *foo(x) { yield x; } })').foo;
             expect(stringify({ bar: fn })).to.equal('{bar:function* foo(x) { yield x; }}');
           });
+
+          it(
+            'should reindent methods',
+            test(
+              eval(
+'               ({\n' +
+'                 fn() {\n' +
+'                   if (true) {\n' +
+'                     return "hello";\n' +
+'                   }\n' +
+'                 }\n' +
+'               })'),
+              '{\n  fn() {\n    if (true) {\n      return "hello";\n    }\n  }\n}',
+              2
+            )
+          );
         });
       }
     });

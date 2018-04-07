@@ -103,6 +103,17 @@
   }
 
   /**
+   * Can be replaced with `str.repeat(count)` if code is updated to ES6.
+   *
+   * @param  {string} str
+   * @param  {number} count
+   * @return {string}
+   */
+  function stringRepeat (str, count) {
+    return new Array(Math.max(0, count|0) + 1).join(str);
+  }
+
+  /**
    * Return the global variable name.
    *
    * @return {string}
@@ -189,6 +200,11 @@
             value = prefix + stringify(key) + fnString.substring(prefix.length + key.length);
           }
 
+          // Dedent the function, since it didn't come through regular stringification.
+          if (indent) {
+            value = dedentFunction(value);
+          }
+
           // Method notation includes the key, so there's no need to add it again below.
           addKey = false;
         } else {
@@ -231,6 +247,30 @@
   }
 
   /**
+   * Rewrite a stringified function to remove initial indentation.
+   *
+   * @param  {string} fnString
+   * @return {string}
+   */
+  function dedentFunction (fnString) {
+    var indentationRegExp = /\n */g;
+    var match;
+
+    // Find the minimum amount of indentation used in the function body.
+    var dedent = Infinity;
+    while (match = indentationRegExp.exec(fnString)) {
+      dedent = Math.min(dedent, match[0].length - 1);
+    }
+
+    if (isFinite(dedent)) {
+      return fnString.split('\n' + stringRepeat(' ', dedent)).join('\n');
+    } else {
+      // Function is a one-liner and needs no adjustment.
+      return fnString;
+    }
+  }
+
+  /**
    * Stringify a function.
    *
    * @param  {Function} fn
@@ -238,6 +278,9 @@
    */
   function stringifyFunction (fn, indent) {
     var value = fn.toString();
+    if (indent) {
+      value = dedentFunction(value);
+    }
     var prefix = isGeneratorFunction(fn) ? '*' : '';
     if (fn.name && stringStartsWith(value, prefix + fn.name + '(')) {
       // Method notation was used to define this function, but it was transplanted from another object.
@@ -335,7 +378,7 @@
 
     // Convert the spaces into a string.
     if (typeof space !== 'string') {
-      space = new Array(Math.max(0, space|0) + 1).join(' ');
+      space = stringRepeat(' ', space);
     }
 
     var maxDepth = Number(options.maxDepth) || 100;
