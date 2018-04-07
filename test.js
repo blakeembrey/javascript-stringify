@@ -8,6 +8,10 @@ describe('javascript-stringify', function () {
     };
   };
 
+  var testRoundTrip = function (insult, indent, options) {
+    return test(eval('(' + insult + ')'), insult, indent, options);
+  };
+
   describe('types', function () {
     describe('booleans', function () {
       it('should be stringified', test(true, 'true'));
@@ -127,6 +131,73 @@ describe('javascript-stringify', function () {
             it('should stringify', test(new Set(['key', 'value']), "new Set(['key','value'])"));
           });
         }
+
+        describe('arrow functions', function () {
+          it('should stringify', testRoundTrip('(a, b) => a + b'));
+        });
+
+        describe('generators', function () {
+          it('should stringify', testRoundTrip('function* (x) { yield x; }'));
+        });
+
+        describe('method notation', function () {
+          it('should stringify', testRoundTrip('{a(b, c) { return b + c; }}'));
+
+          it('should stringify generator methods', testRoundTrip('{*a(b) { yield b; }}'));
+
+          it(
+            'should not be fooled by tricky names',
+            testRoundTrip("{'function a'(b, c) { return b + c; }}")
+          );
+
+          it(
+            'should not be fooled by tricky generator names',
+            testRoundTrip("{*'function a'(b, c) { return b + c; }}")
+          );
+
+          it(
+            'should not be fooled by empty names',
+            testRoundTrip("{''(b, c) { return b + c; }}")
+          );
+
+          it(
+            'should not be fooled by arrow functions',
+            testRoundTrip("{a:(b, c) => b + c}")
+          );
+
+          it(
+            'should not be fooled by no-parentheses arrow functions',
+            testRoundTrip("{a:a => a + 1}")
+          );
+
+          it('should stringify extracted methods', function () {
+            var fn = eval('({ foo(x) { return x + 1; } })').foo;
+            expect(stringify(fn)).to.equal('function foo(x) { return x + 1; }');
+          });
+
+          it('should stringify extracted generators', function () {
+            var fn = eval('({ *foo(x) { yield x; } })').foo;
+            expect(stringify(fn)).to.equal('function* foo(x) { yield x; }');
+          });
+
+          // It's difficult to disambiguate between this and the arrow function case. Since the latter is probably
+          // much more common than this pattern (who creates empty-named methods ever?), we don't even try. But this
+          // test is here as documentation of a known limitation of this feature.
+          it.skip('should stringify extracted methods with empty names', function () {
+            var fn = eval('({ ""(x) { return x + 1; } })')[''];
+            expect(stringify(fn)).to.equal('function (x) { return x + 1; }');
+          });
+
+          it('should handle transplanted names', function () {
+            var fn = eval('({ foo(x) { return x + 1; } })').foo;
+            expect(stringify({ bar: fn })).to.equal('{bar:function foo(x) { return x + 1; }}');
+          });
+
+          it('should handle transplanted names with generators', function () {
+            var fn = eval('({ *foo(x) { yield x; } })').foo;
+            expect(stringify({ bar: fn })).to.equal('{bar:function* foo(x) { yield x; }}');
+          });
+        });
       }
     });
 
