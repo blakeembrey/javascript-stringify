@@ -195,18 +195,11 @@
     '[object Boolean]': function (boolean) {
       return 'new Boolean(' + boolean + ')';
     },
-    '[object Uint8Array]': function (array, indent) {
-      return 'new Uint8Array(' + stringifyArray(array) + ')';
-    },
     '[object Set]': function (array, indent, next) {
-      if (typeof Array.from === 'function') {
-        return 'new Set(' + stringify(Array.from(array), indent, next) + ')';
-      } else return undefined;
+      return 'new Set(' + stringify(Array.from(array), indent, next) + ')';
     },
     '[object Map]': function (array, indent, next) {
-      if (typeof Array.from === 'function') {
-        return 'new Map(' + stringify(Array.from(array), indent, next) + ')';
-      } else return undefined;
+      return 'new Map(' + stringify(Array.from(array), indent, next) + ')';
     },
     '[object RegExp]': String,
     '[object Function]': String,

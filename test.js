@@ -99,6 +99,10 @@ describe('javascript-stringify', function () {
       describe('Error', function () {
         it('should stringify', test(new Error('test'), "new Error('test')"));
       });
+
+      describe('unknown native type', function () {
+        it('should be omitted', test({ k: process }, '{}'));
+      });
     });
 
     describe('ES6', function () {
@@ -182,6 +186,18 @@ describe('javascript-stringify', function () {
       var result = stringify(obj, null, null, { references: true })
 
       expect(result).to.equal('(function(){var x={a:{}};x.b=x.a;return x;}())');
+    });
+
+    it('should restore repeated values with indentation', function () {
+      var obj = {}
+      var child = {};
+
+      obj.a = child;
+      obj.b = child;
+
+      var result = stringify(obj, null, 2, { references: true })
+
+      expect(result).to.equal('(function () {\nvar x = {\n  a: {}\n};\nx.b = x.a;\nreturn x;\n}())');
     });
   });
 
@@ -298,6 +314,11 @@ describe('javascript-stringify', function () {
     it(
       'should get part of the object',
       test(obj, '{a:{b:{}}}', null, { maxDepth: 2 })
+    );
+
+    it(
+      'should get part of the object when tracking references',
+      test(obj, '{a:{b:{}}}', null, { maxDepth: 2, references: true })
     );
   });
 });
