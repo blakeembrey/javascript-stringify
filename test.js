@@ -44,6 +44,8 @@ describe('javascript-stringify', function () {
       it('should stringify "Infinity"', test(Infinity, 'Infinity'));
 
       it('should stringify "-Infinity"', test(-Infinity, '-Infinity'));
+
+      it('should stringify "-0"', test(-0, '-0'));
     });
 
     describe('arrays', function () {

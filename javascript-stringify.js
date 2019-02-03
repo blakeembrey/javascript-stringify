@@ -214,7 +214,9 @@
     'string': function (string) {
       return "'" + string.replace(ESCAPABLE, escapeChar) + "'";
     },
-    'number': String,
+    'number': function (val) {
+      return Object.is(val, -0) ? '-0' : String(val);
+    },
     'object': String,
     'boolean': String,
     'symbol': String,
