@@ -9,7 +9,7 @@
     "javascript-stringify.d.ts"
   ],
   "scripts": {
-    "test": "istanbul cover node_modules/mocha/bin/_mocha -- -R spec"
+    "test": "istanbul cover node_modules/mocha/bin/_mocha -x test.js -- -R spec"
   },
   "repository": "https://github.com/blakeembrey/javascript-stringify.git",
   "keywords": [

@@ -82,6 +82,38 @@
   }
 
   /**
+   * Check if a function is an ES6 generator function
+   *
+   * @param  {Function} fn
+   * @return {boolean}
+   */
+  function isGeneratorFunction (fn) {
+    return fn.constructor.name === 'GeneratorFunction';
+  }
+
+  /**
+   * Can be replaced with `str.startsWith(prefix)` if code is updated to ES6.
+   *
+   * @param  {string} str
+   * @param  {string} prefix
+   * @return {boolean}
+   */
+  function stringStartsWith (str, prefix) {
+    return str.substring(0, prefix.length) === prefix;
+  }
+
+  /**
+   * Can be replaced with `str.repeat(count)` if code is updated to ES6.
+   *
+   * @param  {string} str
+   * @param  {number} count
+   * @return {string}
+   */
+  function stringRepeat (str, count) {
+    return new Array(Math.max(0, count|0) + 1).join(str);
+  }
+
+  /**
    * Return the global variable name.
    *
    * @return {string}
@@ -149,19 +181,59 @@
   function stringifyObject (object, indent, next) {
     // Iterate over object keys and concat string together.
     var values = Object.keys(object).reduce(function (values, key) {
-      var value = next(object[key], key);
+      var value;
+      var addKey = true;
 
-      // Omit `undefined` object values.
-      if (value === undefined) {
-        return values;
+      // Handle functions specially to detect method notation.
+      if (typeof object[key] === 'function') {
+        var fn = object[key];
+        var fnString = fn.toString();
+        var prefix = isGeneratorFunction(fn) ? '*' : '';
+
+        // Was this function defined with method notation?
+        if (fn.name === key && stringStartsWith(fnString, prefix + key + '(')) {
+          if (isValidVariableName(key)) {
+            // The function is already in valid method notation.
+            value = fnString;
+          } else {
+            // Reformat the opening of the function into valid method notation.
+            value = prefix + stringify(key) + fnString.substring(prefix.length + key.length);
+          }
+
+          // Dedent the function, since it didn't come through regular stringification.
+          if (indent) {
+            value = dedentFunction(value);
+          }
+
+          // Method notation includes the key, so there's no need to add it again below.
+          addKey = false;
+        } else {
+          // Not defined with method notation; delegate to regular stringification.
+          value = next(fn, key);
+        }
+      } else {
+        // `object[key]` is not a function.
+        value = next(object[key], key);
+
+        // Omit `undefined` object values.
+        if (value === undefined) {
+          return values;
+        }
       }
 
-      // String format the key and value data.
-      key   = isValidVariableName(key) ? key : stringify(key);
+      // String format the value data.
       value = String(value).split('\n').join('\n' + indent);
 
-      // Push the current object key and value into the values array.
-      values.push(indent + key + ':' + (indent ? ' ' : '') + value);
+      if (addKey) {
+        // String format the key data.
+        key = isValidVariableName(key) ? key : stringify(key);
+
+        // Push the current object key and value into the values array.
+        values.push(indent + key + ':' + (indent ? ' ' : '') + value);
+      } else {
+        // Push just the value; this is a method and no key is needed.
+        values.push(indent + value);
+      }
 
       return values;
     }, []).join(indent ? ',\n' : ',');
@@ -172,6 +244,50 @@
     }
 
     return '{' + values + '}';
+  }
+
+  /**
+   * Rewrite a stringified function to remove initial indentation.
+   *
+   * @param  {string} fnString
+   * @return {string}
+   */
+  function dedentFunction (fnString) {
+    var indentationRegExp = /\n */g;
+    var match;
+
+    // Find the minimum amount of indentation used in the function body.
+    var dedent = Infinity;
+    while (match = indentationRegExp.exec(fnString)) {
+      dedent = Math.min(dedent, match[0].length - 1);
+    }
+
+    if (isFinite(dedent)) {
+      return fnString.split('\n' + stringRepeat(' ', dedent)).join('\n');
+    } else {
+      // Function is a one-liner and needs no adjustment.
+      return fnString;
+    }
+  }
+
+  /**
+   * Stringify a function.
+   *
+   * @param  {Function} fn
+   * @return {string}
+   */
+  function stringifyFunction (fn, indent) {
+    var value = fn.toString();
+    if (indent) {
+      value = dedentFunction(value);
+    }
+    var prefix = isGeneratorFunction(fn) ? '*' : '';
+    if (fn.name && stringStartsWith(value, prefix + fn.name + '(')) {
+      // Method notation was used to define this function, but it was transplanted from another object.
+      // Convert to regular function notation.
+      value = 'function' + prefix + ' ' + value.substring(prefix.length);
+    }
+    return value;
   }
 
   /**
@@ -202,7 +318,8 @@
       return 'new Map(' + stringify(Array.from(array), indent, next) + ')';
     },
     '[object RegExp]': String,
-    '[object Function]': String,
+    '[object Function]': stringifyFunction,
+    '[object GeneratorFunction]': stringifyFunction,
     '[object global]': toGlobalVariable,
     '[object Window]': toGlobalVariable
   };
@@ -263,7 +380,7 @@
 
     // Convert the spaces into a string.
     if (typeof space !== 'string') {
-      space = new Array(Math.max(0, space|0) + 1).join(' ');
+      space = stringRepeat(' ', space);
     }
 
     var maxDepth = Number(options.maxDepth) || 100;
