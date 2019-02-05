@@ -92,17 +92,6 @@
   }
 
   /**
-   * Can be replaced with `str.startsWith(prefix)` if code is updated to ES6.
-   *
-   * @param  {string} str
-   * @param  {string} prefix
-   * @return {boolean}
-   */
-  function stringStartsWith (str, prefix) {
-    return str.substring(0, prefix.length) === prefix;
-  }
-
-  /**
    * Can be replaced with `str.repeat(count)` if code is updated to ES6.
    *
    * @param  {string} str
@@ -120,6 +109,27 @@
    */
   function toGlobalVariable (value) {
     return 'Function(' + stringify('return this;') + ')()';
+  }
+
+  /**
+   * Check if a method definition.
+   *
+   * @param  {Function} fn
+   * @return {boolean}
+   */
+  function isMethodDefinition(fn) {
+    switch (fn.constructor.name) {
+      case 'AsyncFunction':
+        return !/^async +(?:\(|function |[^\(\)\s]+ +=>)/.test(fn.toString());
+      case 'GeneratorFunction':
+        return !/^function +\*/.test(fn.toString());
+      case 'AsyncGeneratorFunction':
+        return !/^async +function +\*/.test(fn.toString());
+      case 'Function':
+        return !/^(?:\(|function |[^\(\)\s]+ +=>)/.test(fn.toString());
+      default:
+        return false;
+    }
   }
 
   /**
@@ -181,59 +191,27 @@
   function stringifyObject (object, indent, next) {
     // Iterate over object keys and concat string together.
     var values = Object.keys(object).reduce(function (values, key) {
-      var value;
-      var addKey = true;
+      var property = object[key];
 
-      // Handle functions specially to detect method notation.
-      if (typeof object[key] === 'function') {
-        var fn = object[key];
-        var fnString = fn.toString();
-        var prefix = isGeneratorFunction(fn) ? '*' : '';
+      // Support object method definitions.
+      if (typeof property === 'function' && property.name === key && isMethodDefinition(property)) {
+        values.push(indent + dedentFunction(property.toString()).split('\n').join('\n' + indent));
+        return values;
+      }
 
-        // Was this function defined with method notation?
-        if (fn.name === key && stringStartsWith(fnString, prefix + key + '(')) {
-          if (isValidVariableName(key)) {
-            // The function is already in valid method notation.
-            value = fnString;
-          } else {
-            // Reformat the opening of the function into valid method notation.
-            value = prefix + stringify(key) + fnString.substring(prefix.length + key.length);
-          }
+      var value = next(property, key);
 
-          // Dedent the function, since it didn't come through regular stringification.
-          if (indent) {
-            value = dedentFunction(value);
-          }
-
-          // Method notation includes the key, so there's no need to add it again below.
-          addKey = false;
-        } else {
-          // Not defined with method notation; delegate to regular stringification.
-          value = next(fn, key);
-        }
-      } else {
-        // `object[key]` is not a function.
-        value = next(object[key], key);
-
-        // Omit `undefined` object values.
-        if (value === undefined) {
-          return values;
-        }
+      // Omit `undefined` object values.
+      if (value === undefined) {
+        return values;
       }
 
       // String format the value data.
-      value = String(value).split('\n').join('\n' + indent);
+      var k = isValidVariableName(key) ? key : stringify(key);
+      var v = String(value).split('\n').join('\n' + indent);
 
-      if (addKey) {
-        // String format the key data.
-        key = isValidVariableName(key) ? key : stringify(key);
-
-        // Push the current object key and value into the values array.
-        values.push(indent + key + ':' + (indent ? ' ' : '') + value);
-      } else {
-        // Push just the value; this is a method and no key is needed.
-        values.push(indent + value);
-      }
+      // Push the current object key and value into the values array.
+      values.push(indent + k + ':' + (indent ? ' ' : '') + v);
 
       return values;
     }, []).join(indent ? ',\n' : ',');
@@ -254,40 +232,32 @@
    */
   function dedentFunction (fnString) {
     var indentationRegExp = /\n */g;
+    var size = Infinity;
     var match;
 
-    // Find the minimum amount of indentation used in the function body.
-    var dedent = Infinity;
     while (match = indentationRegExp.exec(fnString)) {
-      dedent = Math.min(dedent, match[0].length - 1);
+      size = Math.min(size, match[0].length - 1);
     }
 
-    if (isFinite(dedent)) {
-      return fnString.split('\n' + stringRepeat(' ', dedent)).join('\n');
-    } else {
-      // Function is a one-liner and needs no adjustment.
-      return fnString;
+    if (isFinite(size)) {
+      return fnString.split('\n' + stringRepeat(' ', size)).join('\n');
     }
+
+    return fnString;
   }
 
   /**
-   * Stringify a function.
-   *
-   * @param  {Function} fn
-   * @return {string}
+   * Create a function stringify.
    */
-  function stringifyFunction (fn, indent) {
-    var value = fn.toString();
-    if (indent) {
-      value = dedentFunction(value);
+  function stringifyFunctionFactory (prefix) {
+    return function stringifyFunction (fn) {
+      var value = dedentFunction(fn.toString());
+
+      if (!isMethodDefinition(fn)) return value;
+
+      var name = isValidVariableName(fn.name) ? fn.name : '';
+      return prefix + ' ' + name + value.replace(/^[^(]+/g, '');
     }
-    var prefix = isGeneratorFunction(fn) ? '*' : '';
-    if (fn.name && stringStartsWith(value, prefix + fn.name + '(')) {
-      // Method notation was used to define this function, but it was transplanted from another object.
-      // Convert to regular function notation.
-      value = 'function' + prefix + ' ' + value.substring(prefix.length);
-    }
-    return value;
   }
 
   /**
@@ -318,8 +288,10 @@
       return 'new Map(' + stringify(Array.from(array), indent, next) + ')';
     },
     '[object RegExp]': String,
-    '[object Function]': stringifyFunction,
-    '[object GeneratorFunction]': stringifyFunction,
+    '[object Function]': stringifyFunctionFactory('function'),
+    '[object GeneratorFunction]': stringifyFunctionFactory('function*'),
+    '[object AsyncFunction]': stringifyFunctionFactory('async function'),
+    '[object AsyncGeneratorFunction]': stringifyFunctionFactory('async function*'),
     '[object global]': toGlobalVariable,
     '[object Window]': toGlobalVariable
   };
