@@ -27,6 +27,7 @@
   "readmeFilename": "README.md",
   "devDependencies": {
     "chai": "^4.0.2",
+    "fast-check": "^1.10.0",
     "istanbul": "^0.4.5",
     "mocha": "^4.0.1"
   }

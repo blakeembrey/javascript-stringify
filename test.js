@@ -1,3 +1,4 @@
+var fc        = require('fast-check');
 var expect    = require('chai').expect;
 var stringify = require('./');
 
@@ -44,6 +45,8 @@ describe('javascript-stringify', function () {
       it('should stringify "Infinity"', test(Infinity, 'Infinity'));
 
       it('should stringify "-Infinity"', test(-Infinity, '-Infinity'));
+
+      it('should stringify "-0"', test(-0, '-0'));
     });
 
     describe('arrays', function () {
@@ -330,5 +333,23 @@ describe('javascript-stringify', function () {
       'should get part of the object when tracking references',
       test(obj, '{a:{b:{}}}', null, { maxDepth: 2, references: true })
     );
+  });
+
+  describe('property based', function () {
+    var customEval = function (repr) {
+      return Function("return " + repr)();
+    };
+
+    it('should produce string evaluating to the original value', function () {
+      fc.assert(
+        fc.property(
+          fc.anything(),
+          function (originalValue) {
+            var newValue = customEval(stringify(originalValue));
+            expect(newValue).to.deep.equal(originalValue);
+          }
+        )
+      )
+    });
   });
 });
