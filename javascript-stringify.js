@@ -72,6 +72,12 @@
   var IS_VALID_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
   /**
+   * Used in function stringification.
+   */
+  /* istanbul ignore next */
+  var METHOD_NAMES_ARE_QUOTED = ({' '(){}})[' '].toString()[0] === "'";
+
+  /**
    * Check if a variable name is valid.
    *
    * @param  {string}  name
@@ -79,27 +85,6 @@
    */
   function isValidVariableName (name) {
     return !RESERVED_WORDS.hasOwnProperty(name) && IS_VALID_IDENTIFIER.test(name);
-  }
-
-  /**
-   * Check if a function is an ES6 generator function
-   *
-   * @param  {Function} fn
-   * @return {boolean}
-   */
-  function isGeneratorFunction (fn) {
-    return fn.constructor.name === 'GeneratorFunction';
-  }
-
-  /**
-   * Can be replaced with `str.startsWith(prefix)` if code is updated to ES6.
-   *
-   * @param  {string} str
-   * @param  {string} prefix
-   * @return {boolean}
-   */
-  function stringStartsWith (str, prefix) {
-    return str.substring(0, prefix.length) === prefix;
   }
 
   /**
@@ -184,41 +169,18 @@
       var value;
       var addKey = true;
 
-      // Handle functions specially to detect method notation.
       if (typeof object[key] === 'function') {
-        var fn = object[key];
-        var fnString = fn.toString();
-        var prefix = isGeneratorFunction(fn) ? '*' : '';
-
-        // Was this function defined with method notation?
-        if (fn.name === key && stringStartsWith(fnString, prefix + key + '(')) {
-          if (isValidVariableName(key)) {
-            // The function is already in valid method notation.
-            value = fnString;
-          } else {
-            // Reformat the opening of the function into valid method notation.
-            value = prefix + stringify(key) + fnString.substring(prefix.length + key.length);
-          }
-
-          // Dedent the function, since it didn't come through regular stringification.
-          if (indent) {
-            value = dedentFunction(value);
-          }
-
-          // Method notation includes the key, so there's no need to add it again below.
-          addKey = false;
-        } else {
-          // Not defined with method notation; delegate to regular stringification.
-          value = next(fn, key);
-        }
+        value = new FunctionParser().stringify(object[key], indent, key);
+        // The above function adds the key to the function string; this enables
+        // ES6 method notation to be used when appropriate.
+        addKey = false;
       } else {
-        // `object[key]` is not a function.
         value = next(object[key], key);
+      }
 
-        // Omit `undefined` object values.
-        if (value === undefined) {
-          return values;
-        }
+      // Omit `undefined` object values.
+      if (value === undefined) {
+        return values;
       }
 
       // String format the value data.
@@ -226,7 +188,7 @@
 
       if (addKey) {
         // String format the key data.
-        key = isValidVariableName(key) ? key : stringify(key);
+        key = stringifyKey(key);
 
         // Push the current object key and value into the values array.
         values.push(indent + key + ':' + (indent ? ' ' : '') + value);
@@ -277,18 +239,277 @@
    * @return {string}
    */
   function stringifyFunction (fn, indent) {
-    var value = fn.toString();
+    return new FunctionParser().stringify(fn, indent);
+  }
+
+  function stringifyKey (key) {
+    return isValidVariableName(key) ? key : stringify(key);
+  }
+
+  function FunctionParser () {}
+
+  FunctionParser.prototype.stringify = function (fn, indent, key) {
+    this.fnString = Function.prototype.toString.call(fn);
+    this.fnType = fn.constructor.name;
+    this.fnName = fn.name;
+    this.key = key;
+
+    var hasKey = key !== undefined;
+    this.keyPrefix = hasKey ? stringifyKey(key) + (indent ? ': ' : ':') : '';
+
+    // Methods with computed names will have empty function names in node 4, so
+    // empty named functions should still be candidates.
+    this.isMethodCandidate = hasKey && (this.fnName === '' || this.fnName === key);
+
+    // These two properties are mutated while parsing the function.
+    this.pos = 0;
+    this.hadKeyword = false;
+
+    var value = this.tryParse();
+    if (!value) {
+      // If we can't stringify this function, return a void expression; for
+      // bonus help with debugging, include the function as a string literal.
+      return this.keyPrefix + 'void ' + stringify(this.fnString);
+    }
     if (indent) {
       value = dedentFunction(value);
     }
-    var prefix = isGeneratorFunction(fn) ? '*' : '';
-    if (fn.name && stringStartsWith(value, prefix + fn.name + '(')) {
-      // Method notation was used to define this function, but it was transplanted from another object.
-      // Convert to regular function notation.
-      value = 'function' + prefix + ' ' + value.substring(prefix.length);
-    }
     return value;
+  };
+
+  FunctionParser.prototype.getPrefix = function () {
+    return this.isMethodCandidate && !this.hadKeyword ?
+      this.METHOD_PREFIXES[this.fnType] + stringifyKey(this.key) :
+      this.keyPrefix + this.FUNCTION_PREFIXES[this.fnType];
+  };
+
+  FunctionParser.prototype.tryParse = function () {
+    var offset, result;
+    if (this.fnString[this.fnString.length - 1] !== '}') {
+      // Must be an arrow function
+      return this.keyPrefix + this.fnString;
+    }
+
+    if (this.fnName && (result = this.tryStrippingName())) {
+      return result;
+    }
+
+    if (this.tryParsePrefixTokens()) {
+      if (result = this.tryStrippingName()) {
+        return result;
+      }
+      offset = this.pos;
+      switch (this.consumeSyntax('WORDLIKE')) {
+        case 'WORDLIKE':
+          if (this.isMethodCandidate && !this.hadKeyword) {
+            offset = this.pos;
+          }
+          // fallthrough
+        case '()':
+          if (this.fnString.substring(this.pos, this.pos + 2) === '=>') {
+            return this.keyPrefix + this.fnString;
+          }
+          this.pos = offset;
+          // fallthrough
+        case '"':
+        case "'":
+        case '[]':
+          return this.getPrefix() + this.fnString.substring(this.pos);
+      }
+    }
   }
+
+  /**
+   * Attempt to parse the function from the current position by first stripping
+   * the function's name from the front. This is not a fool-proof method on all
+   * JavaScript engines, but yields good results on Node.js 4 (and slightly
+   * less good results on Node.js 6 and 8).
+   */
+  FunctionParser.prototype.tryStrippingName = function () {
+    if (METHOD_NAMES_ARE_QUOTED) {
+      // ... then this approach is unnecessary (and potentially yields false positives).
+      return;
+    }
+
+    var start = this.pos;
+    if (this.fnString.substring(this.pos, this.pos + this.fnName.length) === this.fnName) {
+      this.pos += this.fnName.length;
+      if (this.consumeSyntax() === '()' && this.consumeSyntax() === '{}' && this.pos === this.fnString.length) {
+        // Don't include the function's name if it will be included in the
+        // prefix, or if it's invalid as a name in a function expression.
+        if (this.isMethodCandidate || !isValidVariableName(this.fnName)) {
+          start += this.fnName.length;
+        }
+        return this.getPrefix() + this.fnString.substring(start);
+      }
+    }
+    this.pos = start;
+  }
+
+  /**
+   * Attempt to advance the parser past the keywords expected to be at the
+   * start of this function's definition. This method sets `this.hadKeyword`
+   * based on whether or not a `function` keyword is consumed.
+   *
+   * @return {boolean}
+   */
+  FunctionParser.prototype.tryParsePrefixTokens = function () {
+    var posPrev = this.pos, token;
+    this.hadKeyword = false;
+    switch (this.fnType) {
+      case 'AsyncFunction':
+        if (this.consumeSyntax() !== 'async') {
+          return false;
+        }
+        posPrev = this.pos;
+        // fallthrough
+      case 'Function':
+        if (this.consumeSyntax() === 'function') {
+          this.hadKeyword = true;
+        } else {
+          this.pos = posPrev;
+        }
+        return true;
+      case 'AsyncGeneratorFunction':
+        if (this.consumeSyntax() !== 'async') {
+          return false;
+        }
+        // fallthrough
+      case 'GeneratorFunction':
+        token = this.consumeSyntax();
+        if (token === 'function') {
+          token = this.consumeSyntax();
+          this.hadKeyword = true;
+        }
+        return token === '*';
+    }
+  }
+
+  /**
+   * Advance the parser past one element of JavaScript syntax. This could be a
+   * matched pair of delimiters, like braces or parentheses, or an atomic unit
+   * like a keyword, variable, or operator. Return a normalized string
+   * representation of the element parsed--for example, returns '{}' for a
+   * matched pair of braces. Comments and whitespace are skipped.
+   *
+   * (This isn't a full parser, so the token scanning logic used here is as
+   * simple as it can be. As a consequence, some things that are one token in
+   * JavaScript, like decimal number literals or most multicharacter operators
+   * like '&&', are split into more than one token here. However, awareness of
+   * some multicharacter sequences like '=>' is necessary, so we match the few
+   * of them that we care about.)
+   *
+   * @param  {string} wordLikeToken Value to return in place of a word-like token, if one is detected.
+   * @return {string}
+   */
+  FunctionParser.prototype.consumeSyntax = function (wordLikeToken) {
+    var match = this.consumeRegExp(/^(?:([A-Za-z_0-9$\xA0-\uFFFF]+)|=>|\+\+|\-\-|.)/);
+    if (!match) {
+      return;
+    }
+    this.consumeWhitespace();
+    if (match[1]) {
+      return wordLikeToken || match[1];
+    }
+    var token = match[0];
+    switch (token) {
+      case '(': return this.consumeSyntaxUntil('(', ')');
+      case '[': return this.consumeSyntaxUntil('[', ']');
+      case '{': return this.consumeSyntaxUntil('{', '}');
+      case '`': return this.consumeTemplate();
+      case '"': return this.consumeRegExp(/^(?:[^\\"]|\\.)*"/, '"');
+      case "'": return this.consumeRegExp(/^(?:[^\\']|\\.)*'/, "'");
+    }
+    return token;
+  }
+
+  FunctionParser.prototype.consumeSyntaxUntil = function (startToken, endToken) {
+    var isRegExpAllowed = true;
+    for (;;) {
+      var token = this.consumeSyntax();
+      if (token === endToken) {
+        return startToken + endToken;
+      }
+      if (!token || token === ')' || token === ']' || token === '}') {
+        return;
+      }
+      if (token === '/' && isRegExpAllowed && this.consumeRegExp(/^(?:\\.|[^\\\/\n[]|\[(?:\\.|[^\]])*\])+\/[a-z]*/)) {
+        isRegExpAllowed = false;
+        this.consumeWhitespace();
+      } else {
+        isRegExpAllowed = this.TOKENS_PRECEDING_REGEXPS.hasOwnProperty(token);
+      }
+    }
+  }
+
+  /**
+   * Advance the parser past an arbitrary regular expression. Return `token`,
+   * or the match object of the regexp.
+   */
+  FunctionParser.prototype.consumeRegExp = function (re, token) {
+    var match = re.exec(this.fnString.substring(this.pos));
+    if (!match) {
+      return;
+    }
+    this.pos += match[0].length;
+    if (token) {
+      this.consumeWhitespace();
+    }
+    return token || match;
+  }
+
+  /**
+   * Advance the parser past a template string.
+   */
+  FunctionParser.prototype.consumeTemplate = function () {
+    for (;;) {
+      var match = this.consumeRegExp(/^(?:[^`$\\]|\\.|\$(?!{))*/);
+      if (this.fnString[this.pos] === '`') {
+        this.pos++;
+        this.consumeWhitespace();
+        return '`';
+      }
+      if (this.fnString.substring(this.pos, this.pos + 2) === '${') {
+        this.pos += 2;
+        this.consumeWhitespace();
+        if (this.consumeSyntaxUntil('{', '}')) {
+          continue;
+        }
+      }
+      return;
+    }
+  }
+
+  /**
+   * Advance the parser past any whitespace or comments.
+   */
+  FunctionParser.prototype.consumeWhitespace = function () {
+    this.consumeRegExp(/^(?:\s|\/\/.*|\/\*[^]*?\*\/)*/);
+  }
+
+  FunctionParser.prototype.FUNCTION_PREFIXES = {
+    Function: 'function ',
+    GeneratorFunction: 'function* ',
+    AsyncFunction: 'async function ',
+    AsyncGeneratorFunction: 'async function* ',
+  };
+
+  FunctionParser.prototype.METHOD_PREFIXES = {
+    Function: '',
+    GeneratorFunction: '*',
+    AsyncFunction: 'async ',
+    AsyncGeneratorFunction: 'async *',
+  };
+
+  FunctionParser.prototype.TOKENS_PRECEDING_REGEXPS = {};
+
+  (
+    'case delete else in instanceof new return throw typeof void ' +
+    ', ; : + - ! ~ & | ^ * / % < > ? ='
+  ).split(' ').map(function (token) {
+    FunctionParser.prototype.TOKENS_PRECEDING_REGEXPS[token] = true;
+  });
+
 
   /**
    * Convert JavaScript objects into strings.
@@ -320,6 +541,8 @@
     '[object RegExp]': String,
     '[object Function]': stringifyFunction,
     '[object GeneratorFunction]': stringifyFunction,
+    '[object AsyncFunction]': stringifyFunction,
+    '[object AsyncGeneratorFunction]': stringifyFunction,
     '[object global]': toGlobalVariable,
     '[object Window]': toGlobalVariable
   };
