@@ -82,16 +82,6 @@
   }
 
   /**
-   * Check if a function is an ES6 generator function
-   *
-   * @param  {Function} fn
-   * @return {boolean}
-   */
-  function isGeneratorFunction (fn) {
-    return fn.constructor.name === 'GeneratorFunction';
-  }
-
-  /**
    * Can be replaced with `str.repeat(count)` if code is updated to ES6.
    *
    * @param  {string} str
@@ -129,6 +119,27 @@
         return !/^(?:\(|function |[^\(\)\s]+ +=>)/.test(fn.toString());
       default:
         return false;
+    }
+  }
+
+  /**
+   * Return a valid function prefix based on type.
+   *
+   * @param  {Function} fn
+   * @return {boolean}
+   */
+  function functionPrefix(fn, shorthand) {
+    switch (fn.constructor.name) {
+      case 'AsyncFunction':
+        return shorthand ? 'async ' : 'async function ';
+      case 'GeneratorFunction':
+        return shorthand ? '* ' : 'function* ';
+      case 'AsyncGeneratorFunction':
+        return shorthand ? 'async * ' : 'async function*';
+      case 'Function':
+        return shorthand ? '' : 'function ';
+      default:
+        return '';
     }
   }
 
@@ -249,15 +260,14 @@
   /**
    * Create a function stringify.
    */
-  function stringifyFunctionFactory (prefix) {
-    return function stringifyFunction (fn) {
-      var value = dedentFunction(fn.toString());
+  function stringifyFunction (fn) {
+    var value = dedentFunction(fn.toString());
 
-      if (!isMethodDefinition(fn)) return value;
+    if (!isMethodDefinition(fn)) return value;
 
-      var name = isValidVariableName(fn.name) ? fn.name : '';
-      return prefix + ' ' + name + value.replace(/^[^(]+/g, '');
-    }
+    var prefix = functionPrefix(fn);
+    var name = isValidVariableName(fn.name) ? fn.name : '';
+    return prefix + name + value.replace(/^[^(]+/g, '');
   }
 
   /**
@@ -288,10 +298,10 @@
       return 'new Map(' + stringify(Array.from(array), indent, next) + ')';
     },
     '[object RegExp]': String,
-    '[object Function]': stringifyFunctionFactory('function'),
-    '[object GeneratorFunction]': stringifyFunctionFactory('function*'),
-    '[object AsyncFunction]': stringifyFunctionFactory('async function'),
-    '[object AsyncGeneratorFunction]': stringifyFunctionFactory('async function*'),
+    '[object Function]': stringifyFunction,
+    '[object GeneratorFunction]': stringifyFunction,
+    '[object AsyncFunction]': stringifyFunction,
+    '[object AsyncGeneratorFunction]': stringifyFunction,
     '[object global]': toGlobalVariable,
     '[object Window]': toGlobalVariable
   };
