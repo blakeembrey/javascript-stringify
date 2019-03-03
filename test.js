@@ -207,6 +207,10 @@ describe('javascript-stringify', function () {
           it('should stringify', testRoundTrip('function* (x) { yield x; }'));
         });
 
+        describe('async', function () {
+          it('should stringify', testRoundTrip('async function (x) { await x; }'));
+        });
+
         describe('method notation', function () {
           it('should stringify', testRoundTrip('{a(b, c) { return b + c; }}'));
 
@@ -220,6 +224,11 @@ describe('javascript-stringify', function () {
           it(
             'should not be fooled by tricky generator names',
             testRoundTrip("{*'function a'(b, c) { return b + c; }}")
+          );
+
+          it(
+            'should not be fooled by tricky async names',
+            testRoundTrip("{async 'function a'(b, c) { return b + c; }}")
           );
 
           it(
