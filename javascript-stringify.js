@@ -92,6 +92,16 @@
   }
 
   /**
+   * Check if a function is an ES7 async function
+   *
+   * @param  {Function} fn
+   * @return {boolean}
+   */
+  function isAsyncFunction (fn) {
+    return fn.constructor.name === 'AsyncFunction';
+  }
+
+  /**
    * Can be replaced with `str.startsWith(prefix)` if code is updated to ES6.
    *
    * @param  {string} str
@@ -281,7 +291,7 @@
     if (indent) {
       value = dedentFunction(value);
     }
-    var prefix = isGeneratorFunction(fn) ? '*' : '';
+    var prefix = isGeneratorFunction(fn) ? '*' : isAsyncFunction(fn) ? 'async ' : '';
     if (fn.name && stringStartsWith(value, prefix + fn.name + '(')) {
       // Method notation was used to define this function, but it was transplanted from another object.
       // Convert to regular function notation.
@@ -320,6 +330,7 @@
     '[object RegExp]': String,
     '[object Function]': stringifyFunction,
     '[object GeneratorFunction]': stringifyFunction,
+    '[object AsyncFunction]': stringifyFunction,
     '[object global]': toGlobalVariable,
     '[object Window]': toGlobalVariable
   };
