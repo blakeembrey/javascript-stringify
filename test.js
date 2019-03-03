@@ -10,7 +10,44 @@ describe('javascript-stringify', function () {
   };
 
   var testRoundTrip = function (insult, indent, options) {
-    return test(eval('(' + insult + ')'), insult, indent, options);
+    return function () {
+      return test(eval('(' + insult + ')'), insult, indent, options)();
+    };
+  };
+
+  var describeIfSupported = function (description, testExpr, body) {
+    try {
+      eval(testExpr);
+    } catch (e) {
+      return describe.skip(description, body);
+    }
+    return describe(description, body);
+  };
+
+  var cases = function (description, testCases) {
+    describe(description, function () {
+      for (var i = 0; i < testCases.length; i++) {
+        it('case ' + (i + 1), testCases[i]);
+      }
+    });
+  };
+
+  var ifRunning = function (constraints, body) {
+    if (constraints.node && typeof process !== 'undefined') {
+      var nodeConstraints = constraints.node.split(',');
+      var nodeVersion = process.versions.node.split('.')[0];
+      for (var i = 0; i < nodeConstraints.length; i++) {
+        var nodeConstraint = nodeConstraints[i];
+        if (!isNaN(parseInt(nodeConstraint, 10))) {
+          nodeConstraint = '==' + nodeConstraint;
+        }
+        if (eval(nodeVersion + nodeConstraint)) {
+          return body;
+        }
+      }
+      return;
+    }
+    return body;
   };
 
   describe('types', function () {
@@ -134,6 +171,26 @@ describe('javascript-stringify', function () {
         'should not need to reindent one-liners',
         testRoundTrip('{\n  fn: function () { return; }\n}', 2)
       );
+
+      it(
+        'should gracefully handle unexpected Function.toString formats',
+        function () {
+          var origToString = Function.prototype.toString;
+          Function.prototype.toString = function () {
+            return '{nope}';
+          };
+          try {
+            expect(stringify(function () {})).to.equal("void '{nope}'");
+          } finally {
+            Function.prototype.toString = origToString;
+          }
+        }
+      );
+
+      cases('should not take the names of their keys', [
+        testRoundTrip("{name:function () {}}"),
+        testRoundTrip("{'tricky name':function () {}}"),
+      ]);
     });
 
     describe('native instances', function () {
@@ -160,7 +217,7 @@ describe('javascript-stringify', function () {
       });
 
       describe('Buffer', function () {
-        it('should stringify', test(new Buffer('test'), "new Buffer('test')"));
+        it('should stringify', typeof Buffer === 'function' && test(new Buffer('test'), "new Buffer('test')"));
       });
 
       describe('Error', function () {
@@ -168,7 +225,7 @@ describe('javascript-stringify', function () {
       });
 
       describe('unknown native type', function () {
-        it('should be omitted', test({ k: process }, '{}'));
+        it('should be omitted', test({ k: typeof process === 'undefined' ? navigator : process }, '{}'));
       });
     });
 
@@ -186,7 +243,13 @@ describe('javascript-stringify', function () {
         }
 
         describe('arrow functions', function () {
-          it('should stringify', testRoundTrip('(a, b) => a + b'));
+          cases('should stringify', [
+            testRoundTrip('(a, b) => a + b'),
+            testRoundTrip('o => { return o.a + o.b; }'),
+            testRoundTrip('(a, b) => { if (a) { return b; } }'),
+            testRoundTrip('(a, b) => ({ [a]: b })'),
+            testRoundTrip('a => b => () => a + b'),
+          ]);
 
           it(
             'should reindent function bodies',
@@ -201,6 +264,14 @@ describe('javascript-stringify', function () {
               2
             )
           );
+
+          describeIfSupported('arrows with patterns', '({x}) => x', function () {
+            cases('should stringify', [
+              testRoundTrip("({ x, y }) => x + y"),
+              testRoundTrip("({ x, y }) => { if (x === '}') { return y; } }"),
+              testRoundTrip("({ x, y = /[/})]/.test(x) }) => { return y ? x : 0; }"),
+            ]);
+          });
         });
 
         describe('generators', function () {
@@ -212,10 +283,13 @@ describe('javascript-stringify', function () {
 
           it('should stringify generator methods', testRoundTrip('{*a(b) { yield b; }}'));
 
-          it(
-            'should not be fooled by tricky names',
-            testRoundTrip("{'function a'(b, c) { return b + c; }}")
-          );
+          cases('should not be fooled by tricky names', [
+            testRoundTrip("{'function a'(b, c) { return b + c; }}"),
+            testRoundTrip("{'a(a'(b, c) { return b + c; }}"),
+            testRoundTrip("{'() => function '() {}}"),
+            testRoundTrip("{'['() { return x[y]()\n { return true; }}}"),
+            testRoundTrip("{'() { return false;//'() { return true;\n}}"),
+          ]);
 
           it(
             'should not be fooled by tricky generator names',
@@ -227,14 +301,97 @@ describe('javascript-stringify', function () {
             testRoundTrip("{''(b, c) { return b + c; }}")
           );
 
-          it(
-            'should not be fooled by arrow functions',
-            testRoundTrip("{a:(b, c) => b + c}")
-          );
+          cases('should not be fooled by arrow functions', [
+            testRoundTrip("{a:(b, c) => b + c}"),
+            testRoundTrip("{a:a => a + 1}"),
+            function () {
+              var fn = eval('({ "() => ": () => () => 42 })')['() => '];
+              expect(stringify(fn)).to.equal('() => () => 42');
+            },
+            testRoundTrip("{'() => ':() => () => 42}"),
+            testRoundTrip('{\'() => "\':() => "() {//"}'),
+            testRoundTrip('{\'() => "\':() => "() {`//"}'),
+            testRoundTrip('{\'() => "\':() => "() {`${//"}'),
+            testRoundTrip('{\'() => "\':() => "() {/*//"}'),
+
+            ifRunning({ node: '<=4,>=10' }, testRoundTrip("{'a => function ':a => function () { return a + 1; }}")),
+          ]);
+
+          cases('should not be fooled by regexp literals', [
+            testRoundTrip("{' '(s) { return /}/.test(s); }}"),
+            testRoundTrip("{' '(s) { return /abc/ .test(s); }}"),
+            testRoundTrip("{' '() { return x / y; // /}\n }}"),
+            testRoundTrip("{' '() { return / y; }//* } */}}"),
+
+            testRoundTrip("{' '() { return delete / y; }/.x}}"),
+            testRoundTrip("{' '() { switch (x) { case / y; }}/: }}}"),
+            testRoundTrip("{' '() { if (x) return; else / y;}/; }}"),
+            testRoundTrip("{' '() { return x in / y;}/; }}"),
+            testRoundTrip("{' '() { return x instanceof / y;}/; }}"),
+            testRoundTrip("{' '() { return new / y;}/.x; }}"),
+            testRoundTrip("{' '() { throw / y;}/.x; }}"),
+            testRoundTrip("{' '() { return typeof / y;}/; }}"),
+            testRoundTrip("{' '() { void / y;}/; }}"),
+            testRoundTrip("{' '() { return x, / y;}/; }}"),
+            testRoundTrip("{' '() { return x; / y;}/; }}"),
+            testRoundTrip("{' '() { return { x: / y;}/ }; }}"),
+            testRoundTrip("{' '() { return x + / y;}/.x; }}"),
+            testRoundTrip("{' '() { return x - / y;}/.x; }}"),
+            testRoundTrip("{' '() { return !/ y;}/; }}"),
+            testRoundTrip("{' '() { return ~/ y;}/.x; }}"),
+            testRoundTrip("{' '() { return x && / y;}/; }}"),
+            testRoundTrip("{' '() { return x || / y;}/; }}"),
+            testRoundTrip("{' '() { return x ^ / y;}/.x; }}"),
+            testRoundTrip("{' '() { return x * / y;}/.x; }}"),
+            testRoundTrip("{' '() { return x / / y;}/.x; }}"),
+            testRoundTrip("{' '() { return x % / y;}/.x; }}"),
+            testRoundTrip("{' '() { return x < / y;}/.x; }}"),
+            testRoundTrip("{' '() { return x > / y;}/.x; }}"),
+            testRoundTrip("{' '() { return x <= / y;}/.x; }}"),
+            testRoundTrip("{' '() { return x /= / y;}/.x; }}"),
+            testRoundTrip("{' '() { return x ? / y;}/ : false; }}"),
+          ]);
+
+          cases('should not be fooled by computed names', [
+            test(eval('({ ["foobar".slice(3)](x) { return x + 1; } })'), '{bar(x) { return x + 1; }}'),
+            test(
+              eval('({[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\",\\"+s(b)+b)(JSON.stringify,",")]() {}")]() {}})'),
+              "{'[((s,a,b)=>a+s(a)+\",\"+s(b)+b)(JSON.stringify,\"[((s,a,b)=>a+s(a)+\\\\\",\\\\\"+s(b)+b)(JSON.stringify,\",\")]() {}\")]() {}'() {}}"
+            ),
+            test(
+              eval('({[`over${`6${"0".repeat(3)}`.replace("6", "9")}`]() { this.activateHair(); }})'),
+              '{over9000() { this.activateHair(); }}'
+            ),
+            test(eval('({["() {\'"]() {\'\'}})'), "{'() {\\\''() {\'\'}}"),
+            test(eval('({["() {`"]() {``}})'), "{'() {`'() {``}}"),
+            test(eval('({["() {/*"]() {/*`${()=>{/*}*/}})'), "{'() {/*'() {/*`${()=>{/*}*/}}"),
+          ]);
+
+          // These two cases demonstrate that branching on
+          // METHOD_NAMES_ARE_QUOTED is unavoidable--you can't write code
+          // without it that will pass both of these cases on both node.js 4
+          // and node.js 10. (If you think you can, consider that the name and
+          // toString of the first case when executed on node.js 10 are
+          // identical to the name and toString of the second case when
+          // executed on node.js 4, so good luck telling them apart without
+          // knowing which node you're on.)
+          cases('should handle different versions of node correctly', [
+            test(
+              eval('({[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\",\\"+s(b)+b)(JSON.stringify,",")]() { return 0; /*")]() { return 0; /*() {/* */ return 1;}})'),
+              '{\'[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\\\",\\\\"+s(b)+b)(JSON.stringify,",")]() { return 0; /*")]() { return 0; /*\'() { return 0; /*() {/* */ return 1;}}'
+            ),
+            test(
+              eval('({\'[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\\\",\\\\"+s(b)+b)(JSON.stringify,",")]() { return 0; /*")]() { return 0; /*\'() {/* */ return 1;}})'),
+              '{\'[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\\\",\\\\"+s(b)+b)(JSON.stringify,",")]() { return 0; /*")]() { return 0; /*\'() {/* */ return 1;}}'
+            ),
+          ]);
 
           it(
-            'should not be fooled by no-parentheses arrow functions',
-            testRoundTrip("{a:a => a + 1}")
+            'should not be fooled by comments',
+            test(
+              eval("({'method' /* a comment! */ () /* another comment! */ {}})"),
+              "{method() /* another comment! */ {}}"
+            )
           );
 
           it('should stringify extracted methods', function () {
@@ -247,10 +404,17 @@ describe('javascript-stringify', function () {
             expect(stringify(fn)).to.equal('function* foo(x) { yield x; }');
           });
 
-          // It's difficult to disambiguate between this and the arrow function case. Since the latter is probably
-          // much more common than this pattern (who creates empty-named methods ever?), we don't even try. But this
-          // test is here as documentation of a known limitation of this feature.
-          it.skip('should stringify extracted methods with empty names', function () {
+          it('should stringify extracted methods with tricky names', function () {
+            var fn = eval('({ "a(a"(x) { return x + 1; } })')['a(a'];
+            expect(stringify(fn)).to.equal('function (x) { return x + 1; }');
+          });
+
+          it('should stringify extracted methods with arrow-like tricky names', function () {
+            var fn = eval('({ "() => function "(x) { return x + 1; } })')['() => function '];
+            expect(stringify(fn)).to.equal('function (x) { return x + 1; }');
+          });
+
+          it('should stringify extracted methods with empty names', function () {
             var fn = eval('({ ""(x) { return x + 1; } })')[''];
             expect(stringify(fn)).to.equal('function (x) { return x + 1; }');
           });
@@ -284,8 +448,64 @@ describe('javascript-stringify', function () {
       }
     });
 
+    describe('ES2017', function () {
+      describeIfSupported('async functions', '(async function () {})', function () {
+        it('should stringify', testRoundTrip('async function (x) { await x; }'));
+
+        it(
+          'should gracefully handle unexpected Function.toString formats',
+          function () {
+            var origToString = Function.prototype.toString;
+            Function.prototype.toString = function () {
+              return '{nope}';
+            };
+            try {
+              expect(stringify(eval('(async function () {})'))).to.equal("void '{nope}'");
+            } finally {
+              Function.prototype.toString = origToString;
+            }
+          }
+        );
+      });
+
+      describeIfSupported('async arrows', 'async () => {}', function () {
+        cases('should stringify', [
+          testRoundTrip('async (x) => x + 1'),
+          testRoundTrip('async x => x + 1'),
+          testRoundTrip('async x => { await x.then(y => y + 1); }'),
+        ]);
+
+        cases('should stringify as object properties', [
+          testRoundTrip("{f:async a => a + 1}"),
+          ifRunning({ node: '<=4,>=10' }, testRoundTrip("{'async a => function ':async a => function () { return a + 1; }}")),
+        ]);
+      });
+    });
+
+    describe('ES2018', function () {
+      describeIfSupported('async generators', '(async function* () {})', function () {
+        it('should stringify', testRoundTrip('async function* (x) { yield x; }'));
+
+        it(
+          'should gracefully handle unexpected Function.toString formats',
+          function () {
+            var origToString = Function.prototype.toString;
+            Function.prototype.toString = function () {
+              return '{nope}';
+            };
+            try {
+              expect(stringify(eval('(async function* () {})'))).to.equal("void '{nope}'");
+            } finally {
+              Function.prototype.toString = origToString;
+            }
+          }
+        );
+      });
+    });
+
     describe('global', function () {
       it('should access the global in the current environment', function () {
+        var global = new Function('return this')();
         expect(eval(stringify(global))).to.equal(global);
       });
     });
