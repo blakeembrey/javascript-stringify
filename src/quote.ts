@@ -31,10 +31,7 @@ const META_CHARS = new Map<string, string>([
 function escapeChar(char: string) {
   return (
     META_CHARS.get(char) ||
-    `\\u${char
-      .charCodeAt(0)
-      .toString(16)
-      .padStart(4, "0")}`
+    `\\u${`0000${char.charCodeAt(0).toString(16)}`.slice(-4)}`
   );
 }
 
