@@ -13,6 +13,10 @@
 npm install javascript-stringify --save
 ```
 
+---
+
+<a href="https://www.buymeacoffee.com/blakeembrey" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" ></a>
+
 ## Usage
 
 ```javascript
