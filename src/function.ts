@@ -1,4 +1,4 @@
-import { Next } from "./types";
+import { Next, ToString } from "./types";
 import { quoteKey, isValidVariableName } from "./quote";
 
 /**
@@ -36,11 +36,21 @@ const TOKENS_PRECEDING_REGEXPS = new Set(
 );
 
 /**
+ * Track function parser usage.
+ */
+export const USED_METHOD_KEY = new WeakSet<Function>();
+
+/**
  * Stringify a function.
  */
-export function functionToString(fn: Function, space: string, next: Next) {
-  return new FunctionParser(fn, space, next).stringify();
-}
+export const functionToString: ToString = (fn, space, next, key) => {
+  const name = typeof key === "string" ? key : undefined;
+
+  // Track in function parser for object stringify to avoid duplicate output.
+  if (name !== undefined) USED_METHOD_KEY.add(fn);
+
+  return new FunctionParser(fn, space, next, name).stringify();
+};
 
 /**
  * Rewrite a stringified function to remove initial indentation.
@@ -78,7 +88,7 @@ export class FunctionParser {
     public fn: Function,
     public indent: string,
     public next: Next,
-    public key?: PropertyKey
+    public key?: string
   ) {
     this.fnString = Function.prototype.toString.call(fn);
     this.fnType = fn.constructor.name as keyof typeof FUNCTION_PREFIXES;

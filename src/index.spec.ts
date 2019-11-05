@@ -857,6 +857,39 @@ describe("javascript-stringify", () => {
 
       expect(result).toEqual("[object Object]");
     });
+
+    it("should support object functions", () => {
+      function makeRaw(str: string) {
+        const fn = () => {
+          /* Noop. */
+        };
+        fn.__expression = str;
+        return fn;
+      }
+
+      const result = stringify(
+        {
+          "no-console": makeRaw(
+            `process.env.NODE_ENV === 'production' ? 'error' : 'off'`
+          ),
+          "no-debugger": makeRaw(
+            `process.env.NODE_ENV === 'production' ? 'error' : 'off'`
+          )
+        },
+        (val, indent, stringify) => {
+          if (val && val.__expression) {
+            return val.__expression;
+          }
+          return stringify(val);
+        },
+        2
+      );
+
+      expect(result).toEqual(`{
+  'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'off',
+  'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off'
+}`);
+    });
   });
 
   describe("max depth", () => {

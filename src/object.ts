@@ -27,14 +27,8 @@ const rawObjectToString: ToString = (obj, indent, next) => {
   const values = Object.keys(obj)
     .reduce(
       function(values, key) {
-        if (typeof obj[key] === "function") {
-          const parser = new FunctionParser(obj[key], indent, next, key);
-          const result = parser.stringify();
-          values.push(indent + result.split("\n").join(`\n${indent}`));
-          return values;
-        }
-
-        const result = next(obj[key], key);
+        const fn = obj[key];
+        const result = next(fn, key);
 
         // Omit `undefined` object entries.
         if (result === undefined) return values;
@@ -42,10 +36,13 @@ const rawObjectToString: ToString = (obj, indent, next) => {
         // String format the value data.
         const value = result.split("\n").join(`\n${indent}`);
 
-        values.push(
-          `${indent}${quoteKey(key, next)}:${indent ? " " : ""}${value}`
-        );
+        // Skip `key` prefix for function parser.
+        if (USED_METHOD_KEY.has(fn)) {
+          values.push(`${indent}${value}`);
+          return values;
+        }
 
+        values.push(`${indent}${quoteKey(key, next)}:${space}${value}`);
         return values;
       },
       [] as string[]
