@@ -218,7 +218,7 @@ describe("javascript-stringify", () => {
       });
 
       describe(
-        "should not take the names of their keys",
+        "omit the names of their keys",
         cases(["{name:function () {}}", "{'tricky name':function () {}}"])
       );
     });
@@ -248,6 +248,10 @@ describe("javascript-stringify", () => {
 
       describeIf("Buffer", typeof (Buffer as any) === "function", () => {
         it("should stringify", test(Buffer.from("test"), "new Buffer('test')"));
+      });
+
+      describeIf("BigInt", typeof (BigInt as any) === "function", () => {
+        it("should stringify", test(BigInt("10"), "BigInt('10')"));
       });
 
       describe("Error", () => {

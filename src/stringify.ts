@@ -18,6 +18,9 @@ const PRIMITIVE_TYPES: Record<string, ToString> = {
     // ES2018 `Symbol.description`.
     return `Symbol(${next((value as any).description)})`;
   },
+  bigint: (value: bigint, space: string, next: Next) => {
+    return `BigInt(${next(String(value))})`;
+  },
   undefined: String,
   object: objectToString,
   function: functionToString
