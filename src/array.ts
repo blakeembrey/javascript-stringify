@@ -1,9 +1,9 @@
-import { Next } from "./types";
+import { ToString } from "./types";
 
 /**
  * Stringify an array of values.
  */
-export function arrayToString(array: any[], space: string, next: Next) {
+export const arrayToString: ToString = (array: any[], space, next) => {
   // Map array values to their stringified values with correct indentation.
   const values = array
     .map(function(value, index) {
@@ -15,10 +15,6 @@ export function arrayToString(array: any[], space: string, next: Next) {
     })
     .join(space ? ",\n" : ",");
 
-  // Wrap the array in newlines if we have indentation set.
-  if (space && values) {
-    return "[\n" + values + "\n]";
-  }
-
-  return "[" + values + "]";
-}
+  const eol = space && values ? "\n" : "";
+  return `[${eol}${values}${eol}]`;
+};

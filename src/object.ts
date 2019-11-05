@@ -1,12 +1,27 @@
-import { Next } from "./types";
+import { Next, ToString } from "./types";
 import { quoteKey } from "./quote";
-import { FunctionParser } from "./function";
+import { USED_METHOD_KEY } from "./function";
+import { arrayToString } from "./array";
+
+/**
+ * Transform an object into a string.
+ */
+export const objectToString: ToString = (value, space, next, key) => {
+  if (typeof (Buffer as unknown) === "function" && Buffer.isBuffer(value)) {
+    return `new Buffer(${next(value.toString())})`;
+  }
+
+  // Use the internal object string to select stringify method.
+  const toString = OBJECT_TYPES[Object.prototype.toString.call(value)];
+  return toString ? toString(value, space, next, key) : undefined;
+};
 
 /**
  * Stringify an object of keys and values.
  */
-export function objectToString(obj: any, indent: string, next: Next) {
+const rawObjectToString: ToString = (obj, indent, next) => {
   const eol = indent ? "\n" : "";
+  const space = indent ? " " : "";
 
   // Iterate over object keys and concat string together.
   const values = Object.keys(obj)
@@ -41,4 +56,43 @@ export function objectToString(obj: any, indent: string, next: Next) {
   if (values === "") return "{}";
 
   return `{${eol}${values}${eol}}`;
-}
+};
+
+/**
+ * Stringify global variable access.
+ */
+const globalToString: ToString = (value, space, next) => {
+  return `Function(${next("return this")})()`;
+};
+
+/**
+ * Convert JavaScript objects into strings.
+ */
+const OBJECT_TYPES: Record<string, ToString> = {
+  "[object Array]": arrayToString,
+  "[object Object]": rawObjectToString,
+  "[object Error]": (error: Error, space: string, next: Next) => {
+    return `new Error(${next(error.message)})`;
+  },
+  "[object Date]": (date: Date) => {
+    return `new Date(${date.getTime()})`;
+  },
+  "[object String]": (str: String, space: string, next: Next) => {
+    return `new String(${next(str.toString())})`;
+  },
+  "[object Number]": (num: number) => {
+    return `new Number(${num})`;
+  },
+  "[object Boolean]": (bool: boolean) => {
+    return `new Boolean(${bool})`;
+  },
+  "[object Set]": (set: Set<any>, space: string, next: Next) => {
+    return `new Set(${next(Array.from(set))})`;
+  },
+  "[object Map]": (map: Map<any, any>, space: string, next: Next) => {
+    return `new Map(${next(Array.from(map))})`;
+  },
+  "[object RegExp]": String,
+  "[object global]": globalToString,
+  "[object Window]": globalToString
+};

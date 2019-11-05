@@ -9,5 +9,6 @@ export type Next = (value: any, key?: PropertyKey) => string | undefined;
 export type ToString = (
   value: any,
   space: string,
-  next: Next
+  next: Next,
+  key: PropertyKey | undefined
 ) => string | undefined;

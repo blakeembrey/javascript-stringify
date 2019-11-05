@@ -47,16 +47,16 @@ export function stringify(
     if (path.length > maxDepth) return;
 
     // An undefined key is treated as an out-of-band "value".
-    if (key === undefined) return valueToString(value, space, onNext);
+    if (key === undefined) return valueToString(value, space, onNext, key);
 
     path.push(key);
-    const result = builder(value);
+    const result = builder(value, key === ROOT_SENTINEL ? undefined : key);
     path.pop();
     return result;
   };
 
-  const builder = references
-    ? (value: any): string | undefined => {
+  const builder: Next = references
+    ? (value, key) => {
         if (
           value !== null &&
           (typeof value === "object" ||
@@ -73,14 +73,14 @@ export function stringify(
           tracking.set(value, path.slice(1));
         }
 
-        return valueToString(value, space, onNext);
+        return valueToString(value, space, onNext, key);
       }
-    : (value: any): string | undefined => {
+    : (value, key) => {
         // Stop on recursion.
         if (stack.has(value)) return;
 
         stack.add(value);
-        const result = valueToString(value, space, onNext);
+        const result = valueToString(value, space, onNext, key);
         stack.delete(value);
         return result;
       };
@@ -109,10 +109,15 @@ export function stringify(
 /**
  * Create `toString()` function from replacer.
  */
-function replacerToString(replacer?: ToString | null) {
+function replacerToString(replacer?: ToString | null): ToString {
   if (!replacer) return toString;
 
-  return (value: any, space: string, next: Next) => {
-    return replacer(value, space, (value: any) => toString(value, space, next));
+  return (value, space, next, key) => {
+    return replacer(
+      value,
+      space,
+      (value: any) => toString(value, space, next, key),
+      key
+    );
   };
 }
