@@ -89,6 +89,23 @@ stringify(["test", "string"], function(value, indent, stringify) {
 //=> '["test","string"]'
 ```
 
+## Formatting
+
+You can use your own code formatter on the result of `javascript-stringify`. Here is an example using [eslint](https://www.npmjs.com/package/eslint):
+
+```javascript
+const { CLIEngine } = require("eslint");
+const { stringify } = require("javascript-stringify");
+
+const { APP_ROOT_PATH, ESLINTRC_FILE_PATH } = require("./constants");
+
+const ESLINT_CLI = new CLIEngine({ fix: true, cwd: APP_ROOT_PATH, configFile: ESLINTRC_FILE_PATH });
+
+module.exports = (objectToStringify) => {
+  return ESLINT_CLI.executeOnText(stringify(objectToStringify)).results[0].output;
+};
+```
+
 ## License
 
 MIT
