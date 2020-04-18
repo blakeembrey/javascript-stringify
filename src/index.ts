@@ -66,7 +66,8 @@ export function stringify(
           // Track nodes to restore later.
           if (tracking.has(value)) {
             unpack.set(path.slice(1), tracking.get(value)!);
-            return; // Avoid serializing referenced nodes on an expression.
+            // Use `undefined` as temporaray stand-in for referenced nodes
+            return valueToString(undefined, space, onNext, key);
           }
 
           // Track encountered nodes.
