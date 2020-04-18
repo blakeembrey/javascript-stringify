@@ -682,7 +682,7 @@ describe("javascript-stringify", () => {
       const result = stringify(obj, null, null, { references: true });
 
       expect(result).toEqual(
-        "(function(){var x={key:'value'};x.obj=x;return x;}())"
+        "(function(){var x={key:'value',obj:undefined};x.obj=x;return x;}())"
       );
     });
 
@@ -727,7 +727,9 @@ describe("javascript-stringify", () => {
 
       const result = stringify(obj, null, null, { references: true });
 
-      expect(result).toEqual("(function(){var x={a:{}};x.b=x.a;return x;}())");
+      expect(result).toEqual(
+        "(function(){var x={a:{},b:undefined};x.b=x.a;return x;}())"
+      );
     });
 
     it("should restore repeated values with indentation", function() {
@@ -740,7 +742,22 @@ describe("javascript-stringify", () => {
       const result = stringify(obj, null, 2, { references: true });
 
       expect(result).toEqual(
-        "(function () {\nvar x = {\n  a: {}\n};\nx.b = x.a;\nreturn x;\n}())"
+        "(function () {\nvar x = {\n  a: {},\n  b: undefined\n};\nx.b = x.a;\nreturn x;\n}())"
+      );
+    });
+
+    it("should maintain key order when restoring repeated values", () => {
+      const obj: any = {};
+      const child = {};
+
+      obj.a = child;
+      obj.b = child;
+      obj.c = "C";
+
+      const result = stringify(obj, null, null, { references: true });
+
+      expect(result).toEqual(
+        "(function(){var x={a:{},b:undefined,c:'C'};x.b=x.a;return x;}())"
       );
     });
   });
