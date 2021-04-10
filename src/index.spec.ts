@@ -247,7 +247,10 @@ describe("javascript-stringify", () => {
       });
 
       describeIf("Buffer", typeof (Buffer as any) === "function", () => {
-        it("should stringify", test(Buffer.from("test"), "new Buffer('test')"));
+        it(
+          "should stringify",
+          test(Buffer.from("test"), "Buffer.from('dGVzdA==', 'base64')")
+        );
       });
 
       describeIf("BigInt", typeof (BigInt as any) === "function", () => {
