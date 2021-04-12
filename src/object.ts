@@ -8,7 +8,7 @@ import { arrayToString } from "./array";
  */
 export const objectToString: ToString = (value, space, next, key) => {
   if (typeof (Buffer as unknown) === "function" && Buffer.isBuffer(value)) {
-    return `new Buffer(${next(value.toString())})`;
+    return `Buffer.from(${next(value.toString("base64"))}, 'base64')`;
   }
 
   // Use the internal object string to select stringify method.
