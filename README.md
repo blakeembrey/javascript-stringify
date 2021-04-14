@@ -2,8 +2,8 @@
 
 [![NPM version][npm-image]][npm-url]
 [![NPM downloads][downloads-image]][downloads-url]
-[![Build status][travis-image]][travis-url]
-[![Test coverage][coveralls-image]][coveralls-url]
+[![Build status][build-image]][build-url]
+[![Build coverage][coverage-image]][coverage-url]
 
 > Stringify is to `eval` as `JSON.stringify` is to `JSON.parse`.
 
@@ -111,11 +111,11 @@ module.exports = (objectToStringify) => {
 
 MIT
 
-[npm-image]: https://img.shields.io/npm/v/javascript-stringify.svg?style=flat
+[npm-image]: https://img.shields.io/npm/v/javascript-stringify
 [npm-url]: https://npmjs.org/package/javascript-stringify
-[downloads-image]: https://img.shields.io/npm/dm/javascript-stringify.svg?style=flat
+[downloads-image]: https://img.shields.io/npm/dm/javascript-stringify
 [downloads-url]: https://npmjs.org/package/javascript-stringify
-[travis-image]: https://img.shields.io/travis/blakeembrey/javascript-stringify.svg?style=flat
-[travis-url]: https://travis-ci.org/blakeembrey/javascript-stringify
-[coveralls-image]: https://img.shields.io/coveralls/blakeembrey/javascript-stringify.svg?style=flat
-[coveralls-url]: https://coveralls.io/r/blakeembrey/javascript-stringify?branch=master
+[build-image]: https://img.shields.io/github/workflow/status/blakeembrey/javascript-stringify/CI/main
+[build-url]: https://github.com/blakeembrey/javascript-stringify/actions/workflows/ci.yml?query=branch%3Amain
+[coverage-image]: https://img.shields.io/codecov/c/gh/blakeembrey/javascript-stringify
+[coverage-url]: https://codecov.io/gh/blakeembrey/javascript-stringify
