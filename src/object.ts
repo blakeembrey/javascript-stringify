@@ -7,8 +7,14 @@ import { arrayToString } from "./array";
  * Transform an object into a string.
  */
 export const objectToString: ToString = (value, space, next, key) => {
-  if (typeof (Buffer as unknown) === "function" && Buffer.isBuffer(value)) {
+  // Support buffer in all environments.
+  if (typeof Buffer === "function" && Buffer.isBuffer(value)) {
     return `Buffer.from(${next(value.toString("base64"))}, 'base64')`;
+  }
+
+  // Support `global` under test environments that don't print `[object global]`.
+  if (typeof global === "object" && value === global) {
+    return globalToString(value, space, next, key);
   }
 
   // Use the internal object string to select stringify method.
@@ -20,8 +26,6 @@ export const objectToString: ToString = (value, space, next, key) => {
  * Stringify an object of keys and values.
  */
 const rawObjectToString: ToString = (obj, indent, next, key) => {
-  if (obj === globalThis) return globalToString(obj, indent, next, key);
-
   const eol = indent ? "\n" : "";
   const space = indent ? " " : "";
 
