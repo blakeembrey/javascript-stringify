@@ -19,34 +19,33 @@ export const objectToString: ToString = (value, space, next, key) => {
 /**
  * Stringify an object of keys and values.
  */
-const rawObjectToString: ToString = (obj, indent, next) => {
+const rawObjectToString: ToString = (obj, indent, next, key) => {
+  if (obj === globalThis) return globalToString(obj, indent, next, key);
+
   const eol = indent ? "\n" : "";
   const space = indent ? " " : "";
 
   // Iterate over object keys and concat string together.
   const values = Object.keys(obj)
-    .reduce(
-      function(values, key) {
-        const fn = obj[key];
-        const result = next(fn, key);
+    .reduce(function (values, key) {
+      const fn = obj[key];
+      const result = next(fn, key);
 
-        // Omit `undefined` object entries.
-        if (result === undefined) return values;
+      // Omit `undefined` object entries.
+      if (result === undefined) return values;
 
-        // String format the value data.
-        const value = result.split("\n").join(`\n${indent}`);
+      // String format the value data.
+      const value = result.split("\n").join(`\n${indent}`);
 
-        // Skip `key` prefix for function parser.
-        if (USED_METHOD_KEY.has(fn)) {
-          values.push(`${indent}${value}`);
-          return values;
-        }
-
-        values.push(`${indent}${quoteKey(key, next)}:${space}${value}`);
+      // Skip `key` prefix for function parser.
+      if (USED_METHOD_KEY.has(fn)) {
+        values.push(`${indent}${value}`);
         return values;
-      },
-      [] as string[]
-    )
+      }
+
+      values.push(`${indent}${quoteKey(key, next)}:${space}${value}`);
+      return values;
+    }, [] as string[])
     .join(`,${eol}`);
 
   // Avoid new lines in an empty object.
@@ -74,7 +73,7 @@ const OBJECT_TYPES: Record<string, ToString> = {
   "[object Date]": (date: Date) => {
     return `new Date(${date.getTime()})`;
   },
-  "[object String]": (str: String, space: string, next: Next) => {
+  "[object String]": (str: string, space: string, next: Next) => {
     return `new String(${next(str.toString())})`;
   },
   "[object Number]": (num: number) => {
@@ -91,5 +90,5 @@ const OBJECT_TYPES: Record<string, ToString> = {
   },
   "[object RegExp]": String,
   "[object global]": globalToString,
-  "[object Window]": globalToString
+  "[object Window]": globalToString,
 };

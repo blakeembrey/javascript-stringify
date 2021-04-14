@@ -34,7 +34,7 @@ export function stringify(
     maxDepth = 100,
     references = false,
     skipUndefinedProperties = false,
-    maxValues = 100000
+    maxValues = 100000,
   } = options;
 
   // Wrap replacer function to support falling back on supported stringify.

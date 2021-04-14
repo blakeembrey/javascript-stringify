@@ -7,7 +7,6 @@ declare const window: any;
 
 // Evaluate a string into JavaScript
 const evalValue = (str: string | undefined) => {
-  // tslint:disable-next-line no-eval
   return eval(`(${str})`);
 };
 
@@ -41,7 +40,6 @@ function testRoundTrip(
  */
 function isSupported(expr: string) {
   try {
-    // tslint:disable-next-line no-eval
     eval(expr);
     return true;
   } catch (err) {
@@ -133,7 +131,7 @@ describe("javascript-stringify", () => {
       it(
         "should stringify omit undefined keys",
         test({ a: true, b: undefined }, "{a:true}", null, {
-          skipUndefinedProperties: true
+          skipUndefinedProperties: true,
         })
       );
 
@@ -208,7 +206,7 @@ describe("javascript-stringify", () => {
 
         try {
           expect(
-            stringify(function() {
+            stringify(function () {
               /* Empty */
             })
           ).toEqual("void '{nope}'");
@@ -269,7 +267,7 @@ describe("javascript-stringify", () => {
               k:
                 typeof (process as any) === "undefined"
                   ? window.navigator
-                  : process
+                  : process,
             },
             "{}"
           )
@@ -300,7 +298,7 @@ describe("javascript-stringify", () => {
             "o => { return o.a + o.b; }",
             "(a, b) => { if (a) { return b; } }",
             "(a, b) => ({ [a]: b })",
-            "a => b => () => a + b"
+            "a => b => () => a + b",
           ])
         );
 
@@ -325,7 +323,7 @@ describe("javascript-stringify", () => {
             cases([
               "({ x, y }) => x + y",
               "({ x, y }) => { if (x === '}') { return y; } }",
-              "({ x, y = /[/})]/.test(x) }) => { return y ? x : 0; }"
+              "({ x, y = /[/})]/.test(x) }) => { return y ? x : 0; }",
             ])
           );
         });
@@ -366,7 +364,7 @@ describe("javascript-stringify", () => {
             "{'a(a'(b, c) { return b + c; }}",
             "{'() => function '() {}}",
             "{'['() { return x[y]()\n{ return true; }}}",
-            "{'() { return false;//'() { return true;\n}}"
+            "{'() { return false;//'() { return true;\n}}",
           ])
         );
 
@@ -397,7 +395,7 @@ describe("javascript-stringify", () => {
             '{\'() => "\':() => "() {/*//"}',
             satisfies(process.versions.node, "<=4 || >=10")
               ? "{'a => function ':a => function () { return a + 1; }}"
-              : undefined
+              : undefined,
           ])
         );
 
@@ -434,7 +432,7 @@ describe("javascript-stringify", () => {
             "{' '() { return x > / y;}/.x; }}",
             "{' '() { return x <= / y;}/.x; }}",
             "{' '() { return x /= / y;}/.x; }}",
-            "{' '() { return x ? / y;}/ : false; }}"
+            "{' '() { return x ? / y;}/ : false; }}",
           ])
         );
 
@@ -617,7 +615,7 @@ describe("javascript-stringify", () => {
           cases([
             "async (x) => x + 1",
             "async x => x + 1",
-            "async x => { await x.then(y => y + 1); }"
+            "async x => { await x.then(y => y + 1); }",
           ])
         );
 
@@ -627,7 +625,7 @@ describe("javascript-stringify", () => {
             "{f:async a => a + 1}",
             satisfies(process.versions.node, "<=4 || >=10")
               ? "{'async a => function ':async a => function () { return a + 1; }}"
-              : undefined
+              : undefined,
           ])
         );
       });
@@ -735,7 +733,7 @@ describe("javascript-stringify", () => {
       );
     });
 
-    it("should restore repeated values with indentation", function() {
+    it("should restore repeated values with indentation", function () {
       const obj: any = {};
       const child = {};
 
@@ -771,8 +769,8 @@ describe("javascript-stringify", () => {
         {
           test: [1, 2, 3],
           nested: {
-            key: "value"
-          }
+            key: "value",
+          },
         },
         null,
         "\t"
@@ -791,8 +789,8 @@ describe("javascript-stringify", () => {
         {
           test: [1, 2, 3],
           nested: {
-            key: "value"
-          }
+            key: "value",
+          },
         },
         null,
         2
@@ -811,8 +809,8 @@ describe("javascript-stringify", () => {
         {
           test: [1, 2, 3],
           nested: {
-            key: "value"
-          }
+            key: "value",
+          },
         },
         null,
         2.6
@@ -833,9 +831,9 @@ describe("javascript-stringify", () => {
 
       const result = stringify(
         {
-          test: "value"
+          test: "value",
         },
-        function(value, indent, next) {
+        function (value, indent, next) {
           callCount++;
 
           if (typeof value === "string") {
@@ -853,9 +851,9 @@ describe("javascript-stringify", () => {
     it("change primitive to object", () => {
       const result = stringify(
         {
-          test: 10
+          test: 10,
         },
-        function(value, indent, next) {
+        function (value, indent, next) {
           if (typeof value === "number") {
             return next({ obj: "value" });
           }
@@ -870,9 +868,9 @@ describe("javascript-stringify", () => {
     it("change object to primitive", () => {
       const result = stringify(
         {
-          test: 10
+          test: 10,
         },
-        value => Object.prototype.toString.call(value)
+        (value) => Object.prototype.toString.call(value)
       );
 
       expect(result).toEqual("[object Object]");
@@ -894,7 +892,7 @@ describe("javascript-stringify", () => {
           ),
           "no-debugger": makeRaw(
             `process.env.NODE_ENV === 'production' ? 'error' : 'off'`
-          )
+          ),
         },
         (val, indent, stringify) => {
           if (val && val.__expression) {
@@ -931,7 +929,7 @@ describe("javascript-stringify", () => {
   describe("property based", () => {
     it("should produce string evaluating to the original value", () => {
       fc.assert(
-        fc.property(fc.anything(), value => {
+        fc.property(fc.anything(), (value) => {
           expect(evalValue(stringify(value))).toEqual(value);
         })
       );

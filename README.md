@@ -79,7 +79,7 @@ stringify({ uno: 1, dos: 2 }, null, "\t"); // "{\n\tuno: 1,\n\tdos: 2\n}"
  * Add custom replacer behaviour - like double quoted strings.
  */
 
-stringify(["test", "string"], function(value, indent, stringify) {
+stringify(["test", "string"], function (value, indent, stringify) {
   if (typeof value === "string") {
     return '"' + value.replace(/"/g, '\\"') + '"';
   }
@@ -99,10 +99,15 @@ const { stringify } = require("javascript-stringify");
 
 const { APP_ROOT_PATH, ESLINTRC_FILE_PATH } = require("./constants");
 
-const ESLINT_CLI = new CLIEngine({ fix: true, cwd: APP_ROOT_PATH, configFile: ESLINTRC_FILE_PATH });
+const ESLINT_CLI = new CLIEngine({
+  fix: true,
+  cwd: APP_ROOT_PATH,
+  configFile: ESLINTRC_FILE_PATH,
+});
 
 module.exports = (objectToStringify) => {
-  return ESLINT_CLI.executeOnText(stringify(objectToStringify)).results[0].output;
+  return ESLINT_CLI.executeOnText(stringify(objectToStringify)).results[0]
+    .output;
 };
 ```
 

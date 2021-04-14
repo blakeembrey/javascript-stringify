@@ -23,7 +23,7 @@ const PRIMITIVE_TYPES: Record<string, ToString> = {
   },
   undefined: String,
   object: objectToString,
-  function: functionToString
+  function: functionToString,
 };
 
 /**

@@ -6,7 +6,7 @@ import { ToString } from "./types";
 export const arrayToString: ToString = (array: any[], space, next) => {
   // Map array values to their stringified values with correct indentation.
   const values = array
-    .map(function(value, index) {
+    .map(function (value, index) {
       const result = next(value, index);
 
       if (result === undefined) return String(result);

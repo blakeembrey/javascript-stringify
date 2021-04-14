@@ -9,7 +9,7 @@ const METHOD_NAMES_ARE_QUOTED =
   {
     " "() {
       /* Empty. */
-    }
+    },
   }[" "]
     .toString()
     .charAt(0) === '"';
@@ -18,14 +18,14 @@ const FUNCTION_PREFIXES = {
   Function: "function ",
   GeneratorFunction: "function* ",
   AsyncFunction: "async function ",
-  AsyncGeneratorFunction: "async function* "
+  AsyncGeneratorFunction: "async function* ",
 };
 
 const METHOD_PREFIXES = {
   Function: "",
   GeneratorFunction: "*",
   AsyncFunction: "async ",
-  AsyncGeneratorFunction: "async *"
+  AsyncGeneratorFunction: "async *",
 };
 
 const TOKENS_PRECEDING_REGEXPS = new Set(
@@ -38,7 +38,7 @@ const TOKENS_PRECEDING_REGEXPS = new Set(
 /**
  * Track function parser usage.
  */
-export const USED_METHOD_KEY = new WeakSet<Function>();
+export const USED_METHOD_KEY = new WeakSet<(...args: unknown[]) => unknown>();
 
 /**
  * Stringify a function.
@@ -85,7 +85,7 @@ export class FunctionParser {
   hadKeyword = false;
 
   constructor(
-    public fn: Function,
+    public fn: (...args: unknown[]) => unknown,
     public indent: string,
     public next: Next,
     public key?: string
@@ -147,14 +147,12 @@ export class FunctionParser {
           if (this.isMethodCandidate && !this.hadKeyword) {
             offset = this.pos;
           }
-        // tslint:disable-next-line no-switch-case-fall-through
         case "()":
           if (this.fnString.substr(this.pos, 2) === "=>") {
             return this.keyPrefix + this.fnString;
           }
 
           this.pos = offset;
-        // tslint:disable-next-line no-switch-case-fall-through
         case '"':
         case "'":
         case "[]":
@@ -203,10 +201,8 @@ export class FunctionParser {
    * Attempt to advance the parser past the keywords expected to be at the
    * start of this function's definition. This method sets `this.hadKeyword`
    * based on whether or not a `function` keyword is consumed.
-   *
-   * @return {boolean}
    */
-  tryParsePrefixTokens() {
+  tryParsePrefixTokens(): boolean {
     let posPrev = this.pos;
 
     this.hadKeyword = false;
@@ -216,7 +212,6 @@ export class FunctionParser {
         if (this.consumeSyntax() !== "async") return false;
 
         posPrev = this.pos;
-      // tslint:disable-next-line no-switch-case-fall-through
       case "Function":
         if (this.consumeSyntax() === "function") {
           this.hadKeyword = true;
@@ -226,7 +221,6 @@ export class FunctionParser {
         return true;
       case "AsyncGeneratorFunction":
         if (this.consumeSyntax() !== "async") return false;
-      // tslint:disable-next-line no-switch-case-fall-through
       case "GeneratorFunction":
         let token = this.consumeSyntax();
 
@@ -248,9 +242,9 @@ export class FunctionParser {
    *
    * (This isn't a full parser, so the token scanning logic used here is as
    * simple as it can be. As a consequence, some things that are one token in
-   * JavaScript, like decimal number literals or most multicharacter operators
+   * JavaScript, like decimal number literals or most multi-character operators
    * like '&&', are split into more than one token here. However, awareness of
-   * some multicharacter sequences like '=>' is necessary, so we match the few
+   * some multi-character sequences like '=>' is necessary, so we match the few
    * of them that we care about.)
    */
   consumeSyntax(wordLikeToken?: string) {
