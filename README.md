@@ -45,19 +45,16 @@ stringify({ a: { b: { c: 1 } } }, null, null, { maxDepth: 2 }); // "{a:{b:{}}}"
 /**
  * Invalid key names are automatically stringified.
  */
-
 stringify({ "some-key": 10 }); // "{'some-key':10}"
 
 /**
  * Some object types and values can remain identical.
  */
-
 stringify([/.+/gi, new Number(10), new Date()]); // "[/.+/gi,new Number(10),new Date(1406623295732)]"
 
 /**
  * Unknown or circular references are removed.
  */
-
 var obj = { x: 10 };
 obj.circular = obj;
 
@@ -67,14 +64,12 @@ stringify(obj, null, null, { references: true }); // "(function(){var x={x:10};x
 /**
  * Specify indentation - just like `JSON.stringify`.
  */
-
 stringify({ a: 2 }, null, " "); // "{\n a: 2\n}"
 stringify({ uno: 1, dos: 2 }, null, "\t"); // "{\n\tuno: 1,\n\tdos: 2\n}"
 
 /**
  * Add custom replacer behaviour - like double quoted strings.
  */
-
 stringify(["test", "string"], function (value, indent, stringify) {
   if (typeof value === "string") {
     return '"' + value.replace(/"/g, '\\"') + '"';
