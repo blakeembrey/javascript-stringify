@@ -92,7 +92,10 @@ const OBJECT_TYPES: Record<string, ToString> = {
   "[object Map]": (map: Map<any, any>, space: string, next: Next) => {
     return `new Map(${next(Array.from(map))})`;
   },
-  "[object RegExp]": String,
+  "[object RegExp]": (value: RegExp, space: string, next: Next) => {
+    if (!value.flags) return `new RegExp(${next(value.source)})`;
+    return `new RegExp(${next(value.source)}, ${next(value.flags)})`;
+  },
   "[object global]": globalToString,
   "[object Window]": globalToString,
 };

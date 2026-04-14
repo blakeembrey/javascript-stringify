@@ -221,9 +221,20 @@ describe("javascript-stringify", () => {
       });
 
       describe("RegExp", () => {
-        it("should stringify as shorthand", test(/[abc]/gi, "/[abc]/gi"));
+        it(
+          "should stringify as shorthand",
+          test(/[abc]/gi, "new RegExp('[abc]', 'gi')"),
+        );
 
-        it("should escape slashes", test(new RegExp("a/b"), "/a\\/b/"));
+        it(
+          "should escape slashes",
+          test(new RegExp("a/b"), "new RegExp('a\\\\/b')"),
+        );
+
+        it(
+          "should escape html characters",
+          test(new RegExp("<!--"), "new RegExp('\\u003c!--')"),
+        );
       });
 
       describe("Number", () => {
