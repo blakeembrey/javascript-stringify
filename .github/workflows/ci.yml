@@ -5,13 +5,11 @@ on:
 jobs:
   test:
     name: Node.js ${{ matrix.node-version }}
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version:
-          - "10"
-          - "12"
-          - "14"
+          - "20"
           - "*"
     steps:
       - uses: actions/checkout@v2

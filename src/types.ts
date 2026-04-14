@@ -10,5 +10,5 @@ export type ToString = (
   value: any,
   space: string,
   next: Next,
-  key: PropertyKey | undefined
+  key: PropertyKey | undefined,
 ) => string | undefined;

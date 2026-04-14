@@ -1,9 +1,10 @@
 {
   "extends": "@borderless/ts-scripts/configs/tsconfig.json",
   "compilerOptions": {
+    "target": "es2015",
     "rootDir": "src",
     "outDir": "dist",
-    "types": ["node", "jest"],
+    "types": ["node"],
     "module": "CommonJS"
   },
   "include": ["src/**/*"]
