@@ -16,7 +16,7 @@ const PRIMITIVE_TYPES: Record<string, ToString> = {
     if (key !== undefined) return `Symbol.for(${next(key)})`;
 
     // ES2018 `Symbol.description`.
-    return `Symbol(${next((value as any).description)})`;
+    return `Symbol(${next(value.description)})`;
   },
   bigint: (value: bigint, space: string, next: Next) => {
     return `BigInt(${next(String(value))})`;

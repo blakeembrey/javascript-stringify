@@ -82,6 +82,8 @@ describe("javascript-stringify", () => {
         "should escape certain unicode sequences",
         test("\u0602", "'\\u0602'"),
       );
+
+      it("should escape < for safety", test("</script>", "'\\u003c/script>'"));
     });
 
     describe("numbers", () => {
@@ -89,7 +91,7 @@ describe("javascript-stringify", () => {
 
       it("should stringify floats", test(10.5, "10.5"));
 
-      it('should stringify "NaN"', test(10.5, "10.5"));
+      it('should stringify "NaN"', test(NaN, "NaN"));
 
       it('should stringify "Infinity"', test(Infinity, "Infinity"));
 
@@ -219,7 +221,20 @@ describe("javascript-stringify", () => {
       });
 
       describe("RegExp", () => {
-        it("should stringify as shorthand", test(/[abc]/gi, "/[abc]/gi"));
+        it(
+          "should stringify as shorthand",
+          test(/[abc]/gi, "new RegExp('[abc]', 'gi')"),
+        );
+
+        it(
+          "should escape slashes",
+          test(new RegExp("a/b"), "new RegExp('a\\\\/b')"),
+        );
+
+        it(
+          "should escape html characters",
+          test(new RegExp("<!--"), "new RegExp('\\u003c!--')"),
+        );
       });
 
       describe("Number", () => {
