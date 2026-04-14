@@ -32,7 +32,7 @@ const TOKENS_PRECEDING_REGEXPS = new Set(
   (
     "case delete else in instanceof new return throw typeof void " +
     ", ; : + - ! ~ & | ^ * / % < > ? ="
-  ).split(" ")
+  ).split(" "),
 );
 
 /**
@@ -88,7 +88,7 @@ export class FunctionParser {
     public fn: (...args: unknown[]) => unknown,
     public indent: string,
     public next: Next,
-    public key?: string
+    public key?: string,
   ) {
     this.fnString = Function.prototype.toString.call(fn);
     this.fnType = fn.constructor.name as keyof typeof FUNCTION_PREFIXES;
@@ -249,7 +249,7 @@ export class FunctionParser {
    */
   consumeSyntax(wordLikeToken?: string) {
     const m = this.consumeMatch(
-      /^(?:([A-Za-z_0-9$\xA0-\uFFFF]+)|=>|\+\+|\-\-|.)/
+      /^(?:([A-Za-z_0-9$\xA0-\uFFFF]+)|=>|\+\+|\-\-|.)/,
     );
 
     if (!m) return;

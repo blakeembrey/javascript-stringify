@@ -21,7 +21,7 @@ export function stringify(
   value: any,
   replacer?: ToString | null,
   indent?: string | number | null,
-  options: Options = {}
+  options: Options = {},
 ) {
   const space = typeof indent === "string" ? indent : " ".repeat(indent || 0);
   const path: PropertyKey[] = [];
@@ -118,7 +118,7 @@ function replacerToString(replacer?: ToString | null): ToString {
       value,
       space,
       (value: any) => toString(value, space, next, key),
-      key
+      key,
     );
   };
 }

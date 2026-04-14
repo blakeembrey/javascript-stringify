@@ -1,3 +1,4 @@
+import { describe, it, expect } from "vitest";
 import * as fc from "fast-check";
 import { satisfies } from "semver";
 import { stringify, Options } from "./index";
@@ -17,7 +18,7 @@ function test(
   value: any,
   result: string,
   indent?: string | number | null,
-  options?: Options
+  options?: Options,
 ) {
   return () => {
     expect(stringify(value, null, indent, options)).toEqual(result);
@@ -30,7 +31,7 @@ function test(
 function testRoundTrip(
   expression: string,
   indent?: string | number,
-  options?: Options
+  options?: Options,
 ) {
   return () => test(evalValue(expression), expression, indent, options)();
 }
@@ -43,7 +44,7 @@ function isSupported(expr: string) {
     eval(expr);
     return true;
   } catch (err) {
-    if (err.name === "SyntaxError") return false;
+    if (err instanceof SyntaxError) return false;
     throw err;
   }
 }
@@ -59,17 +60,6 @@ function cases(cases: (string | undefined)[]) {
   };
 }
 
-/**
- * Conditionally execute test cases.
- */
-function describeIf(
-  description: string,
-  condition: boolean,
-  fn: jest.EmptyFunction
-) {
-  return condition ? describe(description, fn) : describe.skip(description, fn);
-}
-
 describe("javascript-stringify", () => {
   describe("types", () => {
     describe("booleans", () => {
@@ -83,14 +73,14 @@ describe("javascript-stringify", () => {
 
       it(
         "should escape control characters",
-        test("multi\nline", "'multi\\nline'")
+        test("multi\nline", "'multi\\nline'"),
       );
 
       it("should escape back slashes", test("back\\slash", "'back\\\\slash'"));
 
       it(
         "should escape certain unicode sequences",
-        test("\u0602", "'\\u0602'")
+        test("\u0602", "'\\u0602'"),
       );
     });
 
@@ -113,36 +103,36 @@ describe("javascript-stringify", () => {
 
       it(
         "should indent elements",
-        test([{ x: 10 }], "[\n\t{\n\t\tx: 10\n\t}\n]", "\t")
+        test([{ x: 10 }], "[\n\t{\n\t\tx: 10\n\t}\n]", "\t"),
       );
     });
 
     describe("objects", () => {
       it(
         "should stringify as object shorthand",
-        test({ key: "value", "-": 10 }, "{key:'value','-':10}")
+        test({ key: "value", "-": 10 }, "{key:'value','-':10}"),
       );
 
       it(
         "should stringify undefined keys",
-        test({ a: true, b: undefined }, "{a:true,b:undefined}")
+        test({ a: true, b: undefined }, "{a:true,b:undefined}"),
       );
 
       it(
         "should stringify omit undefined keys",
         test({ a: true, b: undefined }, "{a:true}", null, {
           skipUndefinedProperties: true,
-        })
+        }),
       );
 
       it(
         "should quote reserved word keys",
-        test({ if: true, else: false }, "{'if':true,'else':false}")
+        test({ if: true, else: false }, "{'if':true,'else':false}"),
       );
 
       it(
         "should not quote Object.prototype keys",
-        test({ constructor: 1, toString: 2 }, "{constructor:1,toString:2}")
+        test({ constructor: 1, toString: 2 }, "{constructor:1,toString:2}"),
       );
     });
 
@@ -155,11 +145,11 @@ describe("javascript-stringify", () => {
               if (true) {
                 return "hello";
               }
-            }`
+            }`,
           ),
           'function () {\n  if (true) {\n    return "hello";\n  }\n}',
-          2
-        )
+          2,
+        ),
       );
 
       it(
@@ -175,8 +165,8 @@ describe("javascript-stringify", () => {
           }
           `),
           '{\n  fn: function () {\n    if (true) {\n      return "hello";\n    }\n  }\n}',
-          2
-        )
+          2,
+        ),
       );
 
       it(
@@ -190,13 +180,13 @@ describe("javascript-stringify", () => {
             }
           ]`),
           '[\n  function () {\n    if (true) {\n      return "hello";\n    }\n  }\n]',
-          2
-        )
+          2,
+        ),
       );
 
       it(
         "should not need to reindent one-liners",
-        testRoundTrip("{\n  fn: function () { return; }\n}", 2)
+        testRoundTrip("{\n  fn: function () { return; }\n}", 2),
       );
 
       it("should gracefully handle unexpected Function.toString formats", () => {
@@ -208,7 +198,7 @@ describe("javascript-stringify", () => {
           expect(
             stringify(function () {
               /* Empty */
-            })
+            }),
           ).toEqual("void '{nope}'");
         } finally {
           Function.prototype.toString = origToString;
@@ -217,7 +207,7 @@ describe("javascript-stringify", () => {
 
       describe(
         "omit the names of their keys",
-        cases(["{name:function () {}}", "{'tricky name':function () {}}"])
+        cases(["{name:function () {}}", "{'tricky name':function () {}}"]),
       );
     });
 
@@ -244,14 +234,14 @@ describe("javascript-stringify", () => {
         it("should stringify", test(new Boolean(true), "new Boolean(true)"));
       });
 
-      describeIf("Buffer", typeof (Buffer as any) === "function", () => {
+      describe("Buffer", { skip: typeof Buffer !== "function" }, () => {
         it(
           "should stringify",
-          test(Buffer.from("test"), "Buffer.from('dGVzdA==', 'base64')")
+          test(Buffer.from("test"), "Buffer.from('dGVzdA==', 'base64')"),
         );
       });
 
-      describeIf("BigInt", typeof (BigInt as any) === "function", () => {
+      describe("BigInt", { skip: typeof BigInt !== "function" }, () => {
         it("should stringify", test(BigInt("10"), "BigInt('10')"));
       });
 
@@ -269,24 +259,24 @@ describe("javascript-stringify", () => {
                   ? window.navigator
                   : process,
             },
-            "{}"
-          )
+            "{}",
+          ),
         );
       });
     });
 
-    describeIf("ES6", typeof (Array as any).from === "function", () => {
-      describeIf("Map", typeof (Map as any) === "function", () => {
+    describe("ES6", { skip: typeof Array.from !== "function" }, () => {
+      describe("Map", { skip: typeof Map !== "function" }, () => {
         it(
           "should stringify",
-          test(new Map([["key", "value"]]), "new Map([['key','value']])")
+          test(new Map([["key", "value"]]), "new Map([['key','value']])"),
         );
       });
 
-      describeIf("Set", typeof (Set as any) === "function", () => {
+      describe("Set", { skip: typeof Set !== "function" }, () => {
         it(
           "should stringify",
-          test(new Set(["key", "value"]), "new Set(['key','value'])")
+          test(new Set(["key", "value"]), "new Set(['key','value'])"),
         );
       });
 
@@ -299,7 +289,7 @@ describe("javascript-stringify", () => {
             "(a, b) => { if (a) { return b; } }",
             "(a, b) => ({ [a]: b })",
             "a => b => () => a + b",
-          ])
+          ]),
         );
 
         it(
@@ -310,23 +300,27 @@ describe("javascript-stringify", () => {
                 "                 if (true) {\n" +
                 '                   return "hello";\n' +
                 "                 }\n" +
-                "               }"
+                "               }",
             ),
             '() => {\n  if (true) {\n    return "hello";\n  }\n}',
-            2
-          )
+            2,
+          ),
         );
 
-        describeIf("arrows with patterns", isSupported("({x}) => x"), () => {
-          describe(
-            "should stringify",
-            cases([
-              "({ x, y }) => x + y",
-              "({ x, y }) => { if (x === '}') { return y; } }",
-              "({ x, y = /[/})]/.test(x) }) => { return y ? x : 0; }",
-            ])
-          );
-        });
+        describe(
+          "arrows with patterns",
+          { skip: !isSupported("({x}) => x") },
+          () => {
+            describe(
+              "should stringify",
+              cases([
+                "({ x, y }) => x + y",
+                "({ x, y }) => { if (x === '}') { return y; } }",
+                "({ x, y = /[/})]/.test(x) }) => { return y ? x : 0; }",
+              ]),
+            );
+          },
+        );
       });
 
       describe("generators", () => {
@@ -337,15 +331,15 @@ describe("javascript-stringify", () => {
         it("should stringify classes", testRoundTrip("class {}"));
         it(
           "should stringify class and method",
-          testRoundTrip("class { method() {} }")
+          testRoundTrip("class { method() {} }"),
         );
         it(
           "should stringify with newline",
-          testRoundTrip("class\n{ method() {} }")
+          testRoundTrip("class\n{ method() {} }"),
         );
         it(
           "should stringify with comment",
-          testRoundTrip("class/*test*/\n{ method() {} }")
+          testRoundTrip("class/*test*/\n{ method() {} }"),
         );
       });
 
@@ -354,7 +348,7 @@ describe("javascript-stringify", () => {
 
         it(
           "should stringify generator methods",
-          testRoundTrip("{*a(b) { yield b; }}")
+          testRoundTrip("{*a(b) { yield b; }}"),
         );
 
         describe(
@@ -365,17 +359,17 @@ describe("javascript-stringify", () => {
             "{'() => function '() {}}",
             "{'['() { return x[y]()\n{ return true; }}}",
             "{'() { return false;//'() { return true;\n}}",
-          ])
+          ]),
         );
 
         it(
           "should not be fooled by tricky generator names",
-          testRoundTrip("{*'function a'(b, c) { return b + c; }}")
+          testRoundTrip("{*'function a'(b, c) { return b + c; }}"),
         );
 
         it(
           "should not be fooled by empty names",
-          testRoundTrip("{''(b, c) { return b + c; }}")
+          testRoundTrip("{''(b, c) { return b + c; }}"),
         );
 
         it("should not be fooled by keys that look like functions", () => {
@@ -396,7 +390,7 @@ describe("javascript-stringify", () => {
             satisfies(process.versions.node, "<=4 || >=10")
               ? "{'a => function ':a => function () { return a + 1; }}"
               : undefined,
-          ])
+          ]),
         );
 
         describe(
@@ -433,7 +427,7 @@ describe("javascript-stringify", () => {
             "{' '() { return x <= / y;}/.x; }}",
             "{' '() { return x /= / y;}/.x; }}",
             "{' '() { return x ? / y;}/ : false; }}",
-          ])
+          ]),
         );
 
         describe("should not be fooled by computed names", () => {
@@ -441,33 +435,33 @@ describe("javascript-stringify", () => {
             "1",
             test(
               evalValue('{ ["foobar".slice(3)](x) { return x + 1; } }'),
-              "{bar(x) { return x + 1; }}"
-            )
+              "{bar(x) { return x + 1; }}",
+            ),
           );
 
           it(
             "2",
             test(
               evalValue(
-                '{[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\",\\"+s(b)+b)(JSON.stringify,",")]() {}")]() {}}'
+                '{[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\",\\"+s(b)+b)(JSON.stringify,",")]() {}")]() {}}',
               ),
-              '{\'[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\\\",\\\\"+s(b)+b)(JSON.stringify,",")]() {}")]() {}\'() {}}'
-            )
+              '{\'[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\\\",\\\\"+s(b)+b)(JSON.stringify,",")]() {}")]() {}\'() {}}',
+            ),
           );
 
           it(
             "3",
             test(
               evalValue(
-                '{[`over${`6${"0".repeat(3)}`.replace("6", "9")}`]() { this.activateHair(); }}'
+                '{[`over${`6${"0".repeat(3)}`.replace("6", "9")}`]() { this.activateHair(); }}',
               ),
-              "{over9000() { this.activateHair(); }}"
-            )
+              "{over9000() { this.activateHair(); }}",
+            ),
           );
 
           it(
             "4",
-            test(evalValue("{[\"() {'\"]() {''}}"), "{'() {\\''() {''}}")
+            test(evalValue("{[\"() {'\"]() {''}}"), "{'() {\\''() {''}}"),
           );
 
           it("5", test(evalValue('{["() {`"]() {``}}'), "{'() {`'() {``}}"));
@@ -476,8 +470,8 @@ describe("javascript-stringify", () => {
             "6",
             test(
               evalValue('{["() {/*"]() {/*`${()=>{/*}*/}}'),
-              "{'() {/*'() {/*`${()=>{/*}*/}}"
-            )
+              "{'() {/*'() {/*`${()=>{/*}*/}}",
+            ),
           );
         });
 
@@ -494,20 +488,20 @@ describe("javascript-stringify", () => {
             "1",
             test(
               evalValue(
-                '{[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\",\\"+s(b)+b)(JSON.stringify,",")]() { return 0; /*")]() { return 0; /*() {/* */ return 1;}}'
+                '{[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\",\\"+s(b)+b)(JSON.stringify,",")]() { return 0; /*")]() { return 0; /*() {/* */ return 1;}}',
               ),
-              '{\'[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\\\",\\\\"+s(b)+b)(JSON.stringify,",")]() { return 0; /*")]() { return 0; /*\'() { return 0; /*() {/* */ return 1;}}'
-            )
+              '{\'[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\\\",\\\\"+s(b)+b)(JSON.stringify,",")]() { return 0; /*")]() { return 0; /*\'() { return 0; /*() {/* */ return 1;}}',
+            ),
           );
 
           it(
             "2",
             test(
               evalValue(
-                '{\'[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\\\",\\\\"+s(b)+b)(JSON.stringify,",")]() { return 0; /*")]() { return 0; /*\'() {/* */ return 1;}}'
+                '{\'[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\\\",\\\\"+s(b)+b)(JSON.stringify,",")]() { return 0; /*")]() { return 0; /*\'() {/* */ return 1;}}',
               ),
-              '{\'[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\\\",\\\\"+s(b)+b)(JSON.stringify,",")]() { return 0; /*")]() { return 0; /*\'() {/* */ return 1;}}'
-            )
+              '{\'[((s,a,b)=>a+s(a)+","+s(b)+b)(JSON.stringify,"[((s,a,b)=>a+s(a)+\\\\",\\\\"+s(b)+b)(JSON.stringify,",")]() { return 0; /*")]() { return 0; /*\'() {/* */ return 1;}}',
+            ),
           );
         });
 
@@ -515,10 +509,10 @@ describe("javascript-stringify", () => {
           "should not be fooled by comments",
           test(
             evalValue(
-              "{'method' /* a comment! */ () /* another comment! */ {}}"
+              "{'method' /* a comment! */ () /* another comment! */ {}}",
             ),
-            "{method() /* another comment! */ {}}"
-          )
+            "{method() /* another comment! */ {}}",
+          ),
         );
 
         it("should stringify extracted methods", () => {
@@ -552,7 +546,7 @@ describe("javascript-stringify", () => {
           const fn = evalValue("{ foo(x) { return x + 1; } }").foo;
 
           expect(stringify({ bar: fn })).toEqual(
-            "{bar:function foo(x) { return x + 1; }}"
+            "{bar:function foo(x) { return x + 1; }}",
           );
         });
 
@@ -560,7 +554,7 @@ describe("javascript-stringify", () => {
           const fn = evalValue("{ *foo(x) { yield x; } }").foo;
 
           expect(stringify({ bar: fn })).toEqual(
-            "{bar:function* foo(x) { yield x; }}"
+            "{bar:function* foo(x) { yield x; }}",
           );
         });
 
@@ -574,23 +568,23 @@ describe("javascript-stringify", () => {
                 '                     return "hello";\n' +
                 "                   }\n" +
                 "                 }\n" +
-                "               }"
+                "               }",
             ),
             '{\n  fn() {\n    if (true) {\n      return "hello";\n    }\n  }\n}',
-            2
-          )
+            2,
+          ),
         );
       });
     });
 
     describe("ES2017", () => {
-      describeIf(
+      describe(
         "async functions",
-        isSupported("(async function () {})"),
+        { skip: !isSupported("(async function () {})") },
         () => {
           it(
             "should stringify",
-            testRoundTrip("async function (x) { await x; }")
+            testRoundTrip("async function (x) { await x; }"),
           );
 
           it("should gracefully handle unexpected Function.toString formats", () => {
@@ -600,23 +594,23 @@ describe("javascript-stringify", () => {
 
             try {
               expect(stringify(evalValue("async function () {}"))).toEqual(
-                "void '{nope}'"
+                "void '{nope}'",
               );
             } finally {
               Function.prototype.toString = origToString;
             }
           });
-        }
+        },
       );
 
-      describeIf("async arrows", isSupported("async () => {}"), () => {
+      describe("async arrows", { skip: !isSupported("async () => {}") }, () => {
         describe(
           "should stringify",
           cases([
             "async (x) => x + 1",
             "async x => x + 1",
             "async x => { await x.then(y => y + 1); }",
-          ])
+          ]),
         );
 
         describe(
@@ -626,19 +620,19 @@ describe("javascript-stringify", () => {
             satisfies(process.versions.node, "<=4 || >=10")
               ? "{'async a => function ':async a => function () { return a + 1; }}"
               : undefined,
-          ])
+          ]),
         );
       });
     });
 
     describe("ES2018", () => {
-      describeIf(
+      describe(
         "async generators",
-        isSupported("(async function* () {})"),
+        { skip: !isSupported("(async function* () {})") },
         () => {
           it(
             "should stringify",
-            testRoundTrip("async function* (x) { yield x; }")
+            testRoundTrip("async function* (x) { yield x; }"),
           );
 
           it("should gracefully handle unexpected Function.toString formats", () => {
@@ -648,20 +642,20 @@ describe("javascript-stringify", () => {
 
             try {
               expect(stringify(evalValue("async function* () {}"))).toEqual(
-                "void '{nope}'"
+                "void '{nope}'",
               );
             } finally {
               Function.prototype.toString = origToString;
             }
           });
-        }
+        },
       );
     });
 
     describe("global", () => {
       it(
         "should access the global in the current environment",
-        testRoundTrip("Function('return this')()")
+        testRoundTrip("Function('return this')()"),
       );
     });
   });
@@ -683,7 +677,7 @@ describe("javascript-stringify", () => {
       const result = stringify(obj, null, null, { references: true });
 
       expect(result).toEqual(
-        "(function(){var x={key:'value',obj:undefined};x.obj=x;return x;}())"
+        "(function(){var x={key:'value',obj:undefined};x.obj=x;return x;}())",
       );
     });
 
@@ -703,7 +697,7 @@ describe("javascript-stringify", () => {
       const result = stringify(obj, null, null, { references: true });
 
       expect(result).toEqual(
-        "(function(){var x=[1,2,3,undefined];x[3]=x;return x;}())"
+        "(function(){var x=[1,2,3,undefined];x[3]=x;return x;}())",
       );
     });
 
@@ -729,7 +723,7 @@ describe("javascript-stringify", () => {
       const result = stringify(obj, null, null, { references: true });
 
       expect(result).toEqual(
-        "(function(){var x={a:{},b:undefined};x.b=x.a;return x;}())"
+        "(function(){var x={a:{},b:undefined};x.b=x.a;return x;}())",
       );
     });
 
@@ -743,7 +737,7 @@ describe("javascript-stringify", () => {
       const result = stringify(obj, null, 2, { references: true });
 
       expect(result).toEqual(
-        "(function () {\nvar x = {\n  a: {},\n  b: undefined\n};\nx.b = x.a;\nreturn x;\n}())"
+        "(function () {\nvar x = {\n  a: {},\n  b: undefined\n};\nx.b = x.a;\nreturn x;\n}())",
       );
     });
 
@@ -758,7 +752,7 @@ describe("javascript-stringify", () => {
       const result = stringify(obj, null, null, { references: true });
 
       expect(result).toEqual(
-        "(function(){var x={a:{},b:undefined,c:'C'};x.b=x.a;return x;}())"
+        "(function(){var x={a:{},b:undefined,c:'C'};x.b=x.a;return x;}())",
       );
     });
   });
@@ -773,14 +767,14 @@ describe("javascript-stringify", () => {
           },
         },
         null,
-        "\t"
+        "\t",
       );
 
       expect(result).toEqual(
         "{\n" +
           "\ttest: [\n\t\t1,\n\t\t2,\n\t\t3\n\t],\n" +
           "\tnested: {\n\t\tkey: 'value'\n\t}\n" +
-          "}"
+          "}",
       );
     });
 
@@ -793,14 +787,14 @@ describe("javascript-stringify", () => {
           },
         },
         null,
-        2
+        2,
       );
 
       expect(result).toEqual(
         "{\n" +
           "  test: [\n    1,\n    2,\n    3\n  ],\n" +
           "  nested: {\n    key: 'value'\n  }\n" +
-          "}"
+          "}",
       );
     });
 
@@ -813,14 +807,14 @@ describe("javascript-stringify", () => {
           },
         },
         null,
-        2.6
+        2.6,
       );
 
       expect(result).toEqual(
         "{\n" +
           "  test: [\n    1,\n    2,\n    3\n  ],\n" +
           "  nested: {\n    key: 'value'\n  }\n" +
-          "}"
+          "}",
       );
     });
   });
@@ -841,7 +835,7 @@ describe("javascript-stringify", () => {
           }
 
           return next(value);
-        }
+        },
       );
 
       expect(callCount).toEqual(2);
@@ -859,7 +853,7 @@ describe("javascript-stringify", () => {
           }
 
           return next(value);
-        }
+        },
       );
 
       expect(result).toEqual("{test:{obj:'value'}}");
@@ -870,7 +864,7 @@ describe("javascript-stringify", () => {
         {
           test: 10,
         },
-        (value) => Object.prototype.toString.call(value)
+        (value) => Object.prototype.toString.call(value),
       );
 
       expect(result).toEqual("[object Object]");
@@ -888,10 +882,10 @@ describe("javascript-stringify", () => {
       const result = stringify(
         {
           "no-console": makeRaw(
-            `process.env.NODE_ENV === 'production' ? 'error' : 'off'`
+            `process.env.NODE_ENV === 'production' ? 'error' : 'off'`,
           ),
           "no-debugger": makeRaw(
-            `process.env.NODE_ENV === 'production' ? 'error' : 'off'`
+            `process.env.NODE_ENV === 'production' ? 'error' : 'off'`,
           ),
         },
         (val, indent, stringify) => {
@@ -900,7 +894,7 @@ describe("javascript-stringify", () => {
           }
           return stringify(val);
         },
-        2
+        2,
       );
 
       expect(result).toEqual(`{
@@ -917,12 +911,12 @@ describe("javascript-stringify", () => {
 
     it(
       "should get part of the object",
-      test(obj, "{a:{b:{}}}", null, { maxDepth: 2 })
+      test(obj, "{a:{b:{}}}", null, { maxDepth: 2 }),
     );
 
     it(
       "should get part of the object when tracking references",
-      test(obj, "{a:{b:{}}}", null, { maxDepth: 2, references: true })
+      test(obj, "{a:{b:{}}}", null, { maxDepth: 2, references: true }),
     );
   });
 
@@ -931,7 +925,7 @@ describe("javascript-stringify", () => {
       fc.assert(
         fc.property(fc.anything(), (value) => {
           expect(evalValue(stringify(value))).toEqual(value);
-        })
+        }),
       );
     });
   });
