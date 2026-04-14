@@ -4,7 +4,6 @@ import { quoteKey, isValidVariableName } from "./quote";
 /**
  * Used in function stringification.
  */
-/* istanbul ignore next */
 const METHOD_NAMES_ARE_QUOTED =
   {
     " "() {
