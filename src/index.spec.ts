@@ -134,6 +134,11 @@ describe("javascript-stringify", () => {
         "should not quote Object.prototype keys",
         test({ constructor: 1, toString: 2 }, "{constructor:1,toString:2}"),
       );
+
+      it(
+        "should keep `__proto__` keys as own properties",
+        testRoundTrip("{['__proto__']:42}"),
+      );
     });
 
     describe("functions", () => {

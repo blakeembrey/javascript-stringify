@@ -77,6 +77,9 @@ export function isValidVariableName(name: PropertyKey): name is string {
  * Quote JavaScript key access.
  */
 export function quoteKey(key: PropertyKey, next: Next) {
+  // `__proto__` as an identifier or string key is the prototype setter rather
+  // than an own property; emit it as a computed key so it round-trips.
+  if (key === "__proto__") return `[${next(key)}]`;
   return isValidVariableName(key) ? key : next(key);
 }
 
