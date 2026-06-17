@@ -15,6 +15,11 @@ export const arrayToString: ToString = (array: any[], space, next) => {
     })
     .join(space ? ",\n" : ",");
 
+  // A trailing hole is dropped by an array literal (`[1,]` has length `1`), so
+  // append a separator to preserve the array length on the round-trip.
+  const trailingHole =
+    array.length > 0 && !(array.length - 1 in array) ? "," : "";
+
   const eol = space && values ? "\n" : "";
-  return `[${eol}${values}${eol}]`;
+  return `[${eol}${values}${trailingHole}${eol}]`;
 };

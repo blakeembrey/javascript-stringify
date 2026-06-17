@@ -101,6 +101,14 @@ describe("javascript-stringify", () => {
     describe("arrays", () => {
       it("should stringify as array shorthand", test([1, 2, 3], "[1,2,3]"));
 
+      it("should preserve a trailing hole", testRoundTrip("[1,,]"));
+
+      it("should preserve multiple trailing holes", testRoundTrip("[1,,,]"));
+
+      it("should preserve a leading hole", testRoundTrip("[,1]"));
+
+      it("should preserve an interior hole", testRoundTrip("[1,,3]"));
+
       it(
         "should indent elements",
         test([{ x: 10 }], "[\n\t{\n\t\tx: 10\n\t}\n]", "\t"),
